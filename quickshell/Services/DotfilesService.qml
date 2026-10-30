@@ -21,7 +21,27 @@ Singleton {
     }
 
     function adjustPriority(item, delta) {
-        Quickshell.execDetached(["dms-dotfiles-state", "--priority", trayInfo(item).key, String(delta)]);
+        const key = trayInfo(item).key;
+        Quickshell.execDetached(["dms-dotfiles-state", "--priority", key, String(delta)]);
+        const tray = Object.assign({}, state.tray);
+        for (const id in tray) {
+            if (tray[id].key === key)
+                tray[id] = {
+                    key: key,
+                    priority: Math.max(-10, Math.min(10, tray[id].priority + delta))
+                };
+        }
+        state = Object.assign({}, state, {
+            tray: tray
+        });
+    }
+
+    // null shows every item regardless of priority.
+    function setThreshold(value) {
+        Quickshell.execDetached(["dms-dotfiles-state", "--threshold", value === null ? "none" : String(value)]);
+        state = Object.assign({}, state, {
+            threshold: value
+        });
     }
 
     function activate(item) {
