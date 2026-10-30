@@ -94,10 +94,10 @@ BasePill {
             return OverflowLayout.expanderIcon(edge, root.menuOpen);
 
         if (edge === "left" || edge === "right") {
-            return root.menuOpen == (root.section !== "right") ? "keyboard_arrow_up" : "keyboard_arrow_down";
+            return root.pinnedOpen == (root.section !== "right") ? "keyboard_arrow_up" : "keyboard_arrow_down";
         }
 
-        return root.menuOpen != (root.section === "right") ? "keyboard_arrow_left" : "keyboard_arrow_right";
+        return root.pinnedOpen != (root.section === "right") ? "keyboard_arrow_left" : "keyboard_arrow_right";
     }
 
     function callContextMenuFallback(trayItemId, globalX, globalY) {
@@ -123,7 +123,7 @@ BasePill {
         return sortByPreferredOrder(allTrayItems, _trayOrderTrigger).sort((a, b) => DotfilesService.priority(b) - DotfilesService.priority(a));
     }
     readonly property var allSortedTrayItemKeys: allSortedTrayItems.map(item => getTrayItemKey(item))
-    readonly property var visibleSortedTrayItems: allSortedTrayItems.filter(item => !root.isTrayIdHidden(root.getTrayItemKey(item)) && (DotfilesService.state.threshold === null || DotfilesService.priority(item) >= (DotfilesService.state.threshold ?? 0)))
+    readonly property var visibleSortedTrayItems: allSortedTrayItems.filter(item => !root.isTrayIdHidden(root.getTrayItemKey(item)) && (DotfilesService.state.threshold === null || DotfilesService.priority(item) >= (DotfilesService.state.threshold ?? 0)) && item.status !== Status.Passive)
     readonly property int automaticVisibleItemLimit: {
         const policyLimit = DotfilesService.state.maxVisible || 0;
         if (!root.useAutomaticOverflow)
@@ -141,7 +141,11 @@ BasePill {
         const slots = Math.floor((logicalPrimary * maxTrayShare) / itemSize);
         return Math.max(2, Math.min(10, Math.min(root.visibleSortedTrayItems.length, slots)));
     }
-    readonly property var mainBarItemsRaw: visibleSortedTrayItems.slice(0, automaticVisibleItemLimit)
+    readonly property bool edgeFirst: !useOverflowPopup && section === "right"
+    readonly property var mainBarItemsRaw: {
+        const items = visibleSortedTrayItems.slice(0, automaticVisibleItemLimit);
+        return edgeFirst ? items.reverse() : items;
+    }
     readonly property var mainBarItems: mainBarItemsRaw.map((item, idx) => ({
                 key: getTrayItemKey(item),
                 item: item
@@ -149,7 +153,10 @@ BasePill {
     readonly property var autoOverflowBarItems: visibleSortedTrayItems.slice(automaticVisibleItemLimit)
     readonly property var manualHiddenBarItems: allSortedTrayItems.filter(item => !visibleSortedTrayItems.includes(item))
     readonly property var hiddenBarItemKeys: manualHiddenBarItems.concat(autoOverflowBarItems).map(item => root.getTrayItemKey(item))
-    readonly property var hiddenBarItems: allSortedTrayItems.filter(item => hiddenBarItemKeys.indexOf(root.getTrayItemKey(item)) !== -1)
+    readonly property var hiddenBarItems: {
+        const items = allSortedTrayItems.filter(item => hiddenBarItemKeys.indexOf(root.getTrayItemKey(item)) !== -1);
+        return edgeFirst ? items.reverse() : items;
+    }
     readonly property string trayIconTintMode: {
         const configuredMode = SettingsData.systemTrayIconTintMode || "none";
         switch (configuredMode) {
@@ -357,7 +364,7 @@ BasePill {
         }
     }
 
-    readonly property real trayIconSize: Theme.barIconSize(root.barThickness, undefined, root.barConfig?.maximizeWidgetIcons, root.barConfig?.iconScale)
+    readonly property real trayIconSize: Theme.barIconSize(root.barThickness, undefined, true, root.barConfig?.iconScale)
     readonly property real trayItemSize: trayIconSize + Theme.spacingXS + Theme.spacingXXS
 
     readonly property string autoBarShadowDirection: {
@@ -378,6 +385,7 @@ BasePill {
     readonly property string effectiveShadowDirection: Theme.elevationLightDirection === "autoBar" ? autoBarShadowDirection : Theme.elevationLightDirection
 
     property bool menuOpen: false
+    property bool pinnedOpen: false
 
     HoverHandler {
         id: trayHover
@@ -399,7 +407,7 @@ BasePill {
     Timer {
         id: collapseDelay
         interval: 500
-        onTriggered: if (!root.useOverflowPopup && !trayMenuState.showMenu) root.menuOpen = false
+        onTriggered: if (!root.useOverflowPopup && !root.pinnedOpen && !trayMenuState.showMenu) root.menuOpen = false
     }
 
     function _openOverflowAt(triggerItem) {
@@ -572,7 +580,8 @@ BasePill {
                                     root.menuOpen = false;
                                 }
                             } else {
-                                root.menuOpen = !root.menuOpen;
+                                root.pinnedOpen = !root.pinnedOpen;
+                                root.menuOpen = root.pinnedOpen;
                             }
                         }
                     }
@@ -594,6 +603,7 @@ BasePill {
         id: inlineExpandedTrayItemDelegate
 
         Item {
+            id: inlineDelegateRoot
             property var trayItem: modelData.item
             property string itemKey: modelData.key
             property string iconSource: root.trayIconSourceFor(trayItem)
@@ -639,7 +649,7 @@ BasePill {
                 TrayItemIcon {
                     anchors.fill: parent
                     tray: root
-                    trayItem: trayItem
+                    trayItem: inlineDelegateRoot.trayItem
                     source: iconSource
                 }
 
@@ -938,7 +948,8 @@ BasePill {
                                     root.menuOpen = false;
                                 }
                             } else {
-                                root.menuOpen = !root.menuOpen;
+                                root.pinnedOpen = !root.pinnedOpen;
+                                root.menuOpen = root.pinnedOpen;
                             }
                         }
                     }
