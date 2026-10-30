@@ -49,6 +49,8 @@ BasePill {
     function activateInlineTrayItem(trayItem, anchorItem) {
         if (!trayItem)
             return;
+        if (DotfilesService.activate(trayItem))
+            return;
         if (!trayItem.onlyMenu) {
             trayItem.activate();
             return;
@@ -116,12 +118,16 @@ BasePill {
         return TrayMenuManager.sortByPreferredOrder(items, SessionData.trayItemOrder);
     }
 
-    readonly property var allSortedTrayItems: sortByPreferredOrder(allTrayItems, _trayOrderTrigger)
+    readonly property var allSortedTrayItems: {
+        DotfilesService.state;
+        return sortByPreferredOrder(allTrayItems, _trayOrderTrigger).sort((a, b) => DotfilesService.priority(b) - DotfilesService.priority(a));
+    }
     readonly property var allSortedTrayItemKeys: allSortedTrayItems.map(item => getTrayItemKey(item))
-    readonly property var visibleSortedTrayItems: allSortedTrayItems.filter(item => !root.isTrayIdHidden(root.getTrayItemKey(item)))
+    readonly property var visibleSortedTrayItems: allSortedTrayItems.filter(item => !root.isTrayIdHidden(root.getTrayItemKey(item)) && (DotfilesService.state.threshold === null || DotfilesService.priority(item) >= (DotfilesService.state.threshold ?? 0)))
     readonly property int automaticVisibleItemLimit: {
+        const policyLimit = DotfilesService.state.maxVisible || 0;
         if (!root.useAutomaticOverflow)
-            return root.visibleSortedTrayItems.length;
+            return policyLimit > 0 ? Math.min(policyLimit, root.visibleSortedTrayItems.length) : root.visibleSortedTrayItems.length;
 
         const explicitLimit = Number(root.configuredMaxVisibleItems || 0);
         if (explicitLimit > 0)
@@ -141,7 +147,7 @@ BasePill {
                 item: item
             }))
     readonly property var autoOverflowBarItems: visibleSortedTrayItems.slice(automaticVisibleItemLimit)
-    readonly property var manualHiddenBarItems: allSortedTrayItems.filter(item => root.isTrayIdHidden(root.getTrayItemKey(item)))
+    readonly property var manualHiddenBarItems: allSortedTrayItems.filter(item => !visibleSortedTrayItems.includes(item))
     readonly property var hiddenBarItemKeys: manualHiddenBarItems.concat(autoOverflowBarItems).map(item => root.getTrayItemKey(item))
     readonly property var hiddenBarItems: allSortedTrayItems.filter(item => hiddenBarItemKeys.indexOf(root.getTrayItemKey(item)) !== -1)
     readonly property string trayIconTintMode: {
@@ -372,6 +378,29 @@ BasePill {
     readonly property string effectiveShadowDirection: Theme.elevationLightDirection === "autoBar" ? autoBarShadowDirection : Theme.elevationLightDirection
 
     property bool menuOpen: false
+
+    HoverHandler {
+        id: trayHover
+        onHoveredChanged: {
+            if (hovered) {
+                collapseDelay.stop();
+                expandDelay.restart();
+            } else {
+                expandDelay.stop();
+                collapseDelay.restart();
+            }
+        }
+    }
+    Timer {
+        id: expandDelay
+        interval: 200
+        onTriggered: if (root.hasHiddenItems && !root.useOverflowPopup) root.menuOpen = true
+    }
+    Timer {
+        id: collapseDelay
+        interval: 500
+        onTriggered: if (!root.useOverflowPopup && !trayMenuState.showMenu) root.menuOpen = false
+    }
 
     function _openOverflowAt(triggerItem) {
         if (!triggerItem || !root.parentScreen)
@@ -622,12 +651,21 @@ BasePill {
 
             MouseArea {
                 id: inlineTrayItemArea
+                onWheel: event => {
+                    if (event.modifiers & Qt.ShiftModifier) {
+                        DotfilesService.adjustPriority(trayItem, event.angleDelta.y > 0 ? 1 : -1);
+                        event.accepted = true;
+                    } else {
+                        trayItem.scroll(event.angleDelta.y || event.angleDelta.x, event.angleDelta.y === 0);
+                        event.accepted = true;
+                    }
+                }
                 y: root.isVerticalOrientation ? 0 : -root.topMargin
                 x: root.isVerticalOrientation ? -root.leftMargin : 0
                 width: parent.width + (root.isVerticalOrientation ? root.leftMargin + root.rightMargin : 0)
                 height: parent.height + (root.isVerticalOrientation ? 0 : root.topMargin + root.bottomMargin)
                 hoverEnabled: true
-                acceptedButtons: Qt.LeftButton | Qt.RightButton
+                acceptedButtons: Qt.LeftButton | Qt.MiddleButton | Qt.RightButton
                 cursorShape: Qt.PointingHandCursor
                 enabled: root.inlineExpanded
 
@@ -637,6 +675,10 @@ BasePill {
                 }
 
                 onClicked: mouse => {
+                    if (mouse.button === Qt.MiddleButton) {
+                        trayItem.secondaryActivate();
+                        return;
+                    }
                     if (mouse.button === Qt.LeftButton) {
                         root.activateInlineTrayItem(trayItem, inlineVisualContent);
                         return;
@@ -741,12 +783,21 @@ BasePill {
 
             MouseArea {
                 id: trayItemArea
+                onWheel: event => {
+                    if (event.modifiers & Qt.ShiftModifier) {
+                        DotfilesService.adjustPriority(trayItem, event.angleDelta.y > 0 ? 1 : -1);
+                        event.accepted = true;
+                    } else {
+                        trayItem.scroll(event.angleDelta.y || event.angleDelta.x, event.angleDelta.y === 0);
+                        event.accepted = true;
+                    }
+                }
                 y: root.isVerticalOrientation ? 0 : -root.topMargin
                 x: root.isVerticalOrientation ? -root.leftMargin : 0
                 width: parent.width + (root.isVerticalOrientation ? root.leftMargin + root.rightMargin : 0)
                 height: parent.height + (root.isVerticalOrientation ? 0 : root.topMargin + root.bottomMargin)
                 hoverEnabled: true
-                acceptedButtons: Qt.LeftButton | Qt.RightButton
+                acceptedButtons: Qt.LeftButton | Qt.MiddleButton | Qt.RightButton
                 cursorShape: dragHandler.longPressing ? Qt.DragMoveCursor : Qt.PointingHandCursor
 
                 onPressed: mouse => {
@@ -773,6 +824,8 @@ BasePill {
 
                     if (!delegateRoot.trayItem)
                         return;
+                    if (DotfilesService.activate(delegateRoot.trayItem))
+                        return;
                     if (!delegateRoot.trayItem.onlyMenu) {
                         delegateRoot.trayItem.activate();
                         return;
@@ -798,6 +851,10 @@ BasePill {
                 }
 
                 onClicked: mouse => {
+                    if (mouse.button === Qt.MiddleButton) {
+                        trayItem.secondaryActivate();
+                        return;
+                    }
                     if (dragHandler.dragging)
                         return;
                     if (mouse.button !== Qt.RightButton)
