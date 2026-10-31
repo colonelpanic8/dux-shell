@@ -94,10 +94,10 @@ BasePill {
             return OverflowLayout.expanderIcon(edge, root.menuOpen);
 
         if (edge === "left" || edge === "right") {
-            return root.pinnedOpen == (root.section !== "right") ? "keyboard_arrow_up" : "keyboard_arrow_down";
+            return root.menuOpen == (root.section !== "right") ? "keyboard_arrow_up" : "keyboard_arrow_down";
         }
 
-        return root.pinnedOpen != (root.section === "right") ? "keyboard_arrow_left" : "keyboard_arrow_right";
+        return root.menuOpen != (root.section === "right") ? "keyboard_arrow_left" : "keyboard_arrow_right";
     }
 
     function callContextMenuFallback(trayItemId, globalX, globalY) {
@@ -123,11 +123,10 @@ BasePill {
         return sortByPreferredOrder(allTrayItems, _trayOrderTrigger).sort((a, b) => DotfilesService.priority(b) - DotfilesService.priority(a));
     }
     readonly property var allSortedTrayItemKeys: allSortedTrayItems.map(item => getTrayItemKey(item))
-    readonly property var visibleSortedTrayItems: allSortedTrayItems.filter(item => !root.isTrayIdHidden(root.getTrayItemKey(item)) && (DotfilesService.state.threshold === null || DotfilesService.priority(item) >= (DotfilesService.state.threshold ?? 0)) && item.status !== Status.Passive)
+    readonly property var visibleSortedTrayItems: allSortedTrayItems.filter(item => !root.isTrayIdHidden(root.getTrayItemKey(item)))
     readonly property int automaticVisibleItemLimit: {
-        const policyLimit = DotfilesService.state.maxVisible || 0;
         if (!root.useAutomaticOverflow)
-            return policyLimit > 0 ? Math.min(policyLimit, root.visibleSortedTrayItems.length) : root.visibleSortedTrayItems.length;
+            return root.visibleSortedTrayItems.length;
 
         const explicitLimit = Number(root.configuredMaxVisibleItems || 0);
         if (explicitLimit > 0)
@@ -151,7 +150,7 @@ BasePill {
                 item: item
             }))
     readonly property var autoOverflowBarItems: visibleSortedTrayItems.slice(automaticVisibleItemLimit)
-    readonly property var manualHiddenBarItems: allSortedTrayItems.filter(item => !visibleSortedTrayItems.includes(item))
+    readonly property var manualHiddenBarItems: allSortedTrayItems.filter(item => root.isTrayIdHidden(root.getTrayItemKey(item)))
     readonly property var hiddenBarItemKeys: manualHiddenBarItems.concat(autoOverflowBarItems).map(item => root.getTrayItemKey(item))
     readonly property var hiddenBarItems: {
         const items = allSortedTrayItems.filter(item => hiddenBarItemKeys.indexOf(root.getTrayItemKey(item)) !== -1);
@@ -385,30 +384,6 @@ BasePill {
     readonly property string effectiveShadowDirection: Theme.elevationLightDirection === "autoBar" ? autoBarShadowDirection : Theme.elevationLightDirection
 
     property bool menuOpen: false
-    property bool pinnedOpen: false
-
-    HoverHandler {
-        id: trayHover
-        onHoveredChanged: {
-            if (hovered) {
-                collapseDelay.stop();
-                expandDelay.restart();
-            } else {
-                expandDelay.stop();
-                collapseDelay.restart();
-            }
-        }
-    }
-    Timer {
-        id: expandDelay
-        interval: 200
-        onTriggered: if (root.hasHiddenItems && !root.useOverflowPopup) root.menuOpen = true
-    }
-    Timer {
-        id: collapseDelay
-        interval: 500
-        onTriggered: if (!root.useOverflowPopup && !root.pinnedOpen && !trayMenuState.showMenu) root.menuOpen = false
-    }
 
     function _openOverflowAt(triggerItem) {
         if (!triggerItem || !root.parentScreen)
@@ -580,8 +555,7 @@ BasePill {
                                     root.menuOpen = false;
                                 }
                             } else {
-                                root.pinnedOpen = !root.pinnedOpen;
-                                root.menuOpen = root.pinnedOpen;
+                                root.menuOpen = !root.menuOpen;
                             }
                         }
                     }
@@ -948,8 +922,7 @@ BasePill {
                                     root.menuOpen = false;
                                 }
                             } else {
-                                root.pinnedOpen = !root.pinnedOpen;
-                                root.menuOpen = root.pinnedOpen;
+                                root.menuOpen = !root.menuOpen;
                             }
                         }
                     }

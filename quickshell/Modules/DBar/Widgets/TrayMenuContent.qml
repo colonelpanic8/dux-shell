@@ -80,8 +80,6 @@ Item {
         }
     }
 
-    readonly property var threshold: DotfilesService.state.threshold === undefined ? 0 : DotfilesService.state.threshold
-
     component StepperRow: Item {
         id: stepper
 
@@ -220,16 +218,6 @@ Item {
             canIncrease: DotfilesService.priority(root.trayItem) < 10
             onDecrease: DotfilesService.adjustPriority(root.trayItem, -1)
             onIncrease: DotfilesService.adjustPriority(root.trayItem, 1)
-        }
-
-        StepperRow {
-            visible: entryStack.count === 0
-            label: I18n.tr("Hide below")
-            valueText: root.threshold === null ? I18n.tr("Off") : String(root.threshold)
-            canDecrease: root.threshold !== null
-            canIncrease: root.threshold === null || root.threshold < 10
-            onDecrease: DotfilesService.setThreshold(root.threshold > -10 ? root.threshold - 1 : null)
-            onIncrease: DotfilesService.setThreshold(root.threshold === null ? -10 : root.threshold + 1)
         }
 
         Rectangle {
