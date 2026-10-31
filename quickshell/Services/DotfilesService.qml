@@ -36,14 +36,6 @@ Singleton {
         });
     }
 
-    // null shows every item regardless of priority.
-    function setThreshold(value) {
-        Quickshell.execDetached(["dms-dotfiles-state", "--threshold", value === null ? "none" : String(value)]);
-        state = Object.assign({}, state, {
-            threshold: value
-        });
-    }
-
     function activate(item) {
         if (item?.title !== "CrossPaste")
             return false;
