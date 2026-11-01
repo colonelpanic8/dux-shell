@@ -446,6 +446,10 @@ Singleton {
     property string systemTrayIconTintMode: Spec.SPEC.systemTrayIconTintMode.def
     property int systemTrayIconTintSaturation: Spec.SPEC.systemTrayIconTintSaturation.def
     property int systemTrayIconTintStrength: Spec.SPEC.systemTrayIconTintStrength.def
+    property string systemTrayLeftClickAction: Spec.SPEC.systemTrayLeftClickAction.def
+    property string systemTrayMiddleClickAction: Spec.SPEC.systemTrayMiddleClickAction.def
+    property string systemTrayRightClickAction: Spec.SPEC.systemTrayRightClickAction.def
+    property var systemTrayItemClickActions: Spec.SPEC.systemTrayItemClickActions.def
 
     property int controlCenterColumns: Spec.SPEC.controlCenterColumns.def
     property real controlCenterIconScale: Spec.SPEC.controlCenterIconScale.def
