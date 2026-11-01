@@ -20,6 +20,8 @@ Item {
     readonly property var satellitePositionValues: ["island", "edges"]
     readonly property bool selectedIslandEnabled: bar.selectedBarIsIsland && (bar.selectedBarConfig?.enabled ?? false)
     readonly property bool selectedIslandFree: bar.selectedBarIsIsland && SettingsData.islandFreePlacement(bar.selectedBarConfig)
+    readonly property bool barSizeEditable: !bar.selectedBarIsIsland || !root.selectedIslandFree || bar.islandSetting("islandSatellitesEnabled")
+    readonly property string barSizeMode: bar.selectedBarConfig?.barSizeMode ?? "pixels"
     readonly property bool selectedIslandNotch: bar.selectedBarIsIsland && !root.selectedIslandFree && bar.islandSetting("islandNotch")
     readonly property int frameInsetPaddingDisplay: Math.round(SettingsData.frameBarContentGap)
     readonly property var frameBar: SettingsData.frameBarConfig
@@ -348,10 +350,60 @@ Item {
             tags: ["size", "scale", "font", "icon", "spacing", "padding", "inset", "length"]
             visible: bar.selectedBarConfig?.enabled ?? false
 
+            SettingsButtonGroupRow {
+                settingKey: "barSizeMode"
+                tags: ["size", "thickness", "height", "width", "unit", "pixels", "millimeters", "physical", "dpi", "percent", "screen"]
+                visible: root.barSizeEditable
+                text: I18n.tr("Size unit", "bar size unit picker: pixels, physical millimeters, or a share of the screen")
+                resetStore: bar
+                resetKeys: ["barSizeMode", "barSizeMillimeters", "barSizePercent"]
+                model: [I18n.tr("Pixels", "bar size unit option"), I18n.tr("Millimeters", "bar size unit option, the same physical size on every display"), I18n.tr("Screen", "bar size unit option, a percentage of the screen")]
+                values: ["pixels", "millimeters", "percent"]
+                value: root.barSizeMode
+                fallbackValue: "pixels"
+                onValueSelected: value => SettingsData.updateBarConfig(bar.selectedBarId, {
+                        barSizeMode: value
+                    })
+            }
+
+            SettingsSliderRow {
+                settingKey: "barSizeMillimeters"
+                tags: ["size", "thickness", "height", "width", "millimeters", "physical", "dpi"]
+                visible: root.barSizeEditable && root.barSizeMode === "millimeters"
+                text: I18n.tr("Size")
+                resetStore: bar
+                resetKeys: ["barSizeMillimeters"]
+                unit: "mm"
+                decimals: 1
+                minimum: 40
+                maximum: 200
+                value: Math.round((bar.selectedBarConfig?.barSizeMillimeters ?? 10) * 10)
+                onSliderDragFinished: finalValue => SettingsData.updateBarConfig(bar.selectedBarId, {
+                        barSizeMillimeters: finalValue / 10
+                    })
+            }
+
+            SettingsSliderRow {
+                settingKey: "barSizePercent"
+                tags: ["size", "thickness", "height", "width", "percent", "screen"]
+                visible: root.barSizeEditable && root.barSizeMode === "percent"
+                text: I18n.tr("Size")
+                resetStore: bar
+                resetKeys: ["barSizePercent"]
+                unit: "%"
+                decimals: 1
+                minimum: 10
+                maximum: 100
+                value: Math.round((bar.selectedBarConfig?.barSizePercent ?? 3) * 10)
+                onSliderDragFinished: finalValue => SettingsData.updateBarConfig(bar.selectedBarId, {
+                        barSizePercent: finalValue / 10
+                    })
+            }
+
             SettingsSliderRow {
                 settingKey: "islandCompactThickness"
                 tags: ["island", "placement", "compact", "height", "width", "thickness", "size", "satellite"]
-                visible: bar.selectedBarIsIsland && !root.selectedIslandFree
+                visible: bar.selectedBarIsIsland && !root.selectedIslandFree && root.barSizeMode === "pixels"
                 resetStore: bar
                 resetKeys: ["islandCompactThickness"]
                 text: bar.selectedBarIsVertical ? I18n.tr("Width") : I18n.tr("Height")
@@ -366,7 +418,7 @@ Item {
             SettingsSliderRow {
                 settingKey: "barSize"
                 tags: ["size", "thickness", "height", "inner"]
-                visible: !bar.selectedBarIsIsland || bar.islandSetting("islandSatellitesEnabled")
+                visible: (!bar.selectedBarIsIsland || bar.islandSetting("islandSatellitesEnabled")) && root.barSizeMode === "pixels"
                 text: I18n.tr("Size")
                 resetStore: bar
                 resetKeys: ["innerPadding"]
