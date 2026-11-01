@@ -190,7 +190,7 @@ PanelWindow {
                 continue;
             if (!SettingsData.barConfigCoversScreen(bc, screen))
                 continue;
-            const innerPadding = bc.innerPadding ?? (defaultBar?.innerPadding ?? SettingsData.barInnerPaddingDefault);
+            const innerPadding = SettingsData.barInnerPadding(bc.innerPadding === undefined ? defaultBar : bc, screen);
             const thickness = Theme.barThickness(innerPadding, dpr);
             const spacing = bc.spacing ?? (defaultBar?.spacing ?? 4);
             const bottomGap = bc.bottomGap ?? (defaultBar?.bottomGap ?? 0);
