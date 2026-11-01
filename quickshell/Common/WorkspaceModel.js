@@ -104,8 +104,13 @@ function hyprlandSpecialName(name) {
     return name === "special" || name.startsWith("special:");
 }
 
+function hyprlandMinimizedName(name) {
+    return name === "minimized" || name === "special:minimized";
+}
+
 function hyprlandSpecial(ws) {
-    return !(ws.id > 0) && hyprlandSpecialName(ws.name ?? "");
+    const name = ws.name ?? "";
+    return ws.id < -1 || ws.special === true || (!(ws.id > 0) && (hyprlandSpecialName(name) || name.startsWith("scratch-hidden-")));
 }
 
 // Hyprland 0.57 gives named workspaces no id (Quickshell reports -1 for all of them), so the address is their identity
@@ -248,6 +253,8 @@ function hyprlandSpecialDisplayName(name) {
 
 // Hyprland >= 0.56 reports every special workspace with a null id, so specials only match by name
 function hyprlandWorkspaceMatches(ws, record) {
+    if (record.minimizedBucket)
+        return !!ws && hyprlandMinimizedName(ws.name ?? "") && (!record.output || ws.monitor?.name === record.output);
     if (record.special !== true)
         return !!ws && hyprlandKey(ws) === hyprlandKey(record);
     const name = ws?.name ?? "";
@@ -292,7 +299,11 @@ function hyprlandWorkspacesForScreen(raw, screenName, followFocus, occupiedOnly,
     const regular = hyprlandPersistentWorkspaces(raw, hyprlandListedWorkspaces(raw, screenName, followFocus, occupiedOnly), screenName, followFocus, minCount);
     if (!showSpecial)
         return regular;
-    return regular.concat(hyprlandSpecialWorkspaces(raw, screenName, followFocus, occupiedOnly));
+    const output = followFocus ? "" : screenName;
+    const bucket = {id: "dotfiles-minimized", idx: null, name: "M", output: output || "", active: false, placeholder: false, special: true, minimizedBucket: true};
+    if (raw.toplevels.some(tl => hyprlandWorkspaceMatches(tl.workspace, bucket)))
+        regular.push(bucket);
+    return regular;
 }
 
 function hyprlandScrollWorkspaces(raw, screenName, followFocus) {

@@ -166,6 +166,8 @@ BasePill {
     }
 
     function switchToWorkspaceByModelData(entry) {
+        if ((entry?.ws ?? entry)?.minimizedBucket)
+            return;
         workspaces.switchTo(entry);
     }
 
