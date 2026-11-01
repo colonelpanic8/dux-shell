@@ -46,16 +46,22 @@ BasePill {
         return TrayMenuManager.iconSourceFor(trayItem);
     }
 
-    function activateInlineTrayItem(trayItem, anchorItem) {
+    function handleTrayClick(trayItem, button, areaItem, mouse, anchorItem) {
         if (!trayItem)
             return;
-        if (!trayItem.onlyMenu) {
+        switch (TrayMenuManager.clickAction(trayItem, button)) {
+        case "activate":
             trayItem.activate();
             return;
-        }
-        if (!trayItem.hasMenu)
+        case "secondaryActivate":
+            trayItem.secondaryActivate();
             return;
-        root.showForTrayItem(trayItem, anchorItem, parentScreen, root.isAtBottom, root.isVerticalOrientation, root.axis);
+        case "menu":
+            if (trayItem.hasMenu && root.useOverflowPopup)
+                root.menuOpen = false;
+            root.openInlineTrayContextMenu(trayItem, areaItem, mouse, anchorItem);
+            return;
+        }
     }
 
     Connections {
@@ -627,7 +633,7 @@ BasePill {
                 width: parent.width + (root.isVerticalOrientation ? root.leftMargin + root.rightMargin : 0)
                 height: parent.height + (root.isVerticalOrientation ? 0 : root.topMargin + root.bottomMargin)
                 hoverEnabled: true
-                acceptedButtons: Qt.LeftButton | Qt.RightButton
+                acceptedButtons: Qt.LeftButton | Qt.MiddleButton | Qt.RightButton
                 cursorShape: Qt.PointingHandCursor
                 enabled: root.inlineExpanded
 
@@ -636,15 +642,7 @@ BasePill {
                     inlineItemRipple.trigger(pos.x, pos.y);
                 }
 
-                onClicked: mouse => {
-                    if (mouse.button === Qt.LeftButton) {
-                        root.activateInlineTrayItem(trayItem, inlineVisualContent);
-                        return;
-                    }
-                    if (mouse.button !== Qt.RightButton)
-                        return;
-                    root.openInlineTrayContextMenu(trayItem, inlineTrayItemArea, mouse, inlineVisualContent);
-                }
+                onClicked: mouse => root.handleTrayClick(trayItem, mouse.button, inlineTrayItemArea, mouse, inlineVisualContent)
             }
         }
     }
@@ -746,7 +744,7 @@ BasePill {
                 width: parent.width + (root.isVerticalOrientation ? root.leftMargin + root.rightMargin : 0)
                 height: parent.height + (root.isVerticalOrientation ? 0 : root.topMargin + root.bottomMargin)
                 hoverEnabled: true
-                acceptedButtons: Qt.LeftButton | Qt.RightButton
+                acceptedButtons: Qt.LeftButton | Qt.MiddleButton | Qt.RightButton
                 cursorShape: dragHandler.longPressing ? Qt.DragMoveCursor : Qt.PointingHandCursor
 
                 onPressed: mouse => {
@@ -770,18 +768,7 @@ BasePill {
 
                     if (wasDragging || mouse.button !== Qt.LeftButton)
                         return;
-
-                    if (!delegateRoot.trayItem)
-                        return;
-                    if (!delegateRoot.trayItem.onlyMenu) {
-                        delegateRoot.trayItem.activate();
-                        return;
-                    }
-                    if (!delegateRoot.trayItem.hasMenu)
-                        return;
-                    if (root.useOverflowPopup)
-                        root.menuOpen = false;
-                    root.showForTrayItem(delegateRoot.trayItem, visualContent, parentScreen, root.isAtBottom, root.isVerticalOrientation, root.axis);
+                    root.handleTrayClick(delegateRoot.trayItem, mouse.button, trayItemArea, mouse, visualContent);
                 }
 
                 onPositionChanged: mouse => {
@@ -798,18 +785,10 @@ BasePill {
                 }
 
                 onClicked: mouse => {
-                    if (dragHandler.dragging)
+                    // Left clicks run on release so a drag can cancel them.
+                    if (dragHandler.dragging || mouse.button === Qt.LeftButton)
                         return;
-                    if (mouse.button !== Qt.RightButton)
-                        return;
-                    if (!delegateRoot.trayItem?.hasMenu) {
-                        const gp = trayItemArea.mapToGlobal(mouse.x, mouse.y);
-                        root.callContextMenuFallback(delegateRoot.trayItem.id, Math.round(gp.x), Math.round(gp.y));
-                        return;
-                    }
-                    if (root.useOverflowPopup)
-                        root.menuOpen = false;
-                    root.showForTrayItem(delegateRoot.trayItem, visualContent, parentScreen, root.isAtBottom, root.isVerticalOrientation, root.axis);
+                    root.handleTrayClick(delegateRoot.trayItem, mouse.button, trayItemArea, mouse, visualContent);
                 }
             }
         }

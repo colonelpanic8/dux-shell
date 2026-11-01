@@ -595,6 +595,18 @@ var LOCAL_SPEC = {
     systemTrayIconTintStrength: {
         def: 135
     },
+    systemTrayLeftClickAction: {
+        def: "activate"
+    },
+    systemTrayMiddleClickAction: {
+        def: "secondaryActivate"
+    },
+    systemTrayRightClickAction: {
+        def: "menu"
+    },
+    systemTrayItemClickActions: {
+        def: {}
+    },
     controlCenterColumns: {
         def: 8
     },
