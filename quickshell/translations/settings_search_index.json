@@ -6047,6 +6047,49 @@
     "parentLabel": "Bar"
   },
   {
+    "section": "barSizeMillimeters",
+    "label": "Size",
+    "tabIndex": 6,
+    "category": "Appearance",
+    "keywords": [
+      "appearance",
+      "bar",
+      "dpi",
+      "height",
+      "millimeters",
+      "panel",
+      "physical",
+      "size",
+      "statusbar",
+      "taskbar",
+      "thickness",
+      "topbar",
+      "width"
+    ],
+    "parentLabel": "Bar"
+  },
+  {
+    "section": "barSizePercent",
+    "label": "Size",
+    "tabIndex": 6,
+    "category": "Appearance",
+    "keywords": [
+      "appearance",
+      "bar",
+      "height",
+      "panel",
+      "percent",
+      "screen",
+      "size",
+      "statusbar",
+      "taskbar",
+      "thickness",
+      "topbar",
+      "width"
+    ],
+    "parentLabel": "Bar"
+  },
+  {
     "section": "islandHomeCompactTight",
     "label": "Size",
     "tabIndex": 6,
@@ -6106,6 +6149,32 @@
     "parentLabel": "Bar",
     "icon": "space_bar",
     "description": "Gap between the bar ends and the outermost widgets"
+  },
+  {
+    "section": "barSizeMode",
+    "label": "Size unit",
+    "tabIndex": 6,
+    "category": "Appearance",
+    "keywords": [
+      "appearance",
+      "bar",
+      "dpi",
+      "height",
+      "millimeters",
+      "panel",
+      "percent",
+      "physical",
+      "pixels",
+      "screen",
+      "size",
+      "statusbar",
+      "taskbar",
+      "thickness",
+      "topbar",
+      "unit",
+      "width"
+    ],
+    "parentLabel": "Bar"
   },
   {
     "section": "islandHomeStatusContent",
