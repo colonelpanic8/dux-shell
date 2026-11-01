@@ -67,29 +67,27 @@ DContextMenu {
                     return;
                 const screen = root.parentScreen;
 
-                if (mouse.button === Qt.RightButton) {
-                    if (item.hasMenu && root.contextMenu) {
-                        root.itemActivated(item);
-                        root.hide();
-                        root.contextMenu.openFor(item, root.originX, root.originY, screen, root.menuEdge);
-                        return;
-                    }
-                    const gp = itemArea.mapToGlobal(mouse.x, mouse.y);
-                    TrayMenuManager.callContextMenuFallback(item.id, gp.x, gp.y);
-                    root.hide();
-                    return;
-                }
-
-                if (!item.onlyMenu) {
+                switch (TrayMenuManager.clickAction(item, mouse.button)) {
+                case "activate":
                     item.activate();
                     root.hide();
+                    return;
+                case "secondaryActivate":
+                    item.secondaryActivate();
+                    root.hide();
+                    return;
+                case "none":
                     return;
                 }
                 if (item.hasMenu && root.contextMenu) {
                     root.itemActivated(item);
                     root.hide();
                     root.contextMenu.openFor(item, root.originX, root.originY, screen, root.menuEdge);
+                    return;
                 }
+                const gp = itemArea.mapToGlobal(mouse.x, mouse.y);
+                TrayMenuManager.callContextMenuFallback(item.id, gp.x, gp.y);
+                root.hide();
             }
         }
     }

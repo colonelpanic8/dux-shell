@@ -1,6 +1,10 @@
 import QtQuick
+import Quickshell.Services.SystemTray
+import Quickshell.Widgets
 import qs.Common
+import qs.DCommon.Widgets
 import qs.Modules.Settings.Widgets
+import qs.Widgets
 
 Column {
     id: root
@@ -10,6 +14,51 @@ Column {
     readonly property bool inlineExpansion: page.value("trayUseInlineExpansion")
     readonly property bool autoOverflow: page.value("trayAutoOverflow")
     readonly property bool trayTinted: ["primary", "secondary"].includes(SettingsData.systemTrayIconTintMode || "none")
+    readonly property var clickActions: ["activate", "secondaryActivate", "menu", "none"]
+    readonly property var clickActionLabels: [I18n.tr("Activate"), I18n.tr("Secondary action"), I18n.tr("Menu"), I18n.tr("Nothing")]
+    readonly property var clickButtons: [
+        {
+            "name": "left",
+            "key": "systemTrayLeftClickAction",
+            "label": I18n.tr("Left click")
+        },
+        {
+            "name": "middle",
+            "key": "systemTrayMiddleClickAction",
+            "label": I18n.tr("Middle click")
+        },
+        {
+            "name": "right",
+            "key": "systemTrayRightClickAction",
+            "label": I18n.tr("Right click")
+        }
+    ]
+    // Running items plus overridden ones that are not running, so stale overrides stay clearable.
+    readonly property var clickOverrideItems: {
+        const overrides = SettingsData.systemTrayItemClickActions || {};
+        const seen = new Set();
+        const rows = [];
+        for (const item of SystemTray.items.values) {
+            const id = item?.id || "";
+            if (!id || seen.has(id))
+                continue;
+            seen.add(id);
+            rows.push({
+                "id": id,
+                "title": item.tooltipTitle || item.title || id,
+                "icon": TrayMenuManager.iconSourceFor(item)
+            });
+        }
+        for (const id of Object.keys(overrides)) {
+            if (!seen.has(id))
+                rows.push({
+                    "id": id,
+                    "title": id,
+                    "icon": ""
+                });
+        }
+        return rows;
+    }
 
     width: parent?.width ?? 0
     spacing: Theme.spacingL
@@ -97,6 +146,78 @@ Column {
             minimum: 0
             maximum: 200
             onSliderDragFinished: finalValue => SettingsData.set("systemTrayIconTintStrength", finalValue)
+        }
+    }
+
+    SettingsCard {
+        settingKey: "trayClickActions"
+        tags: ["tray", "click", "menu", "activate", "mouse", "system tray"]
+        iconName: "mouse"
+        title: I18n.tr("Click actions")
+
+        Repeater {
+            model: root.clickButtons
+
+            delegate: SettingsDropdownRow {
+                required property var modelData
+
+                text: modelData.label
+                resetKeys: [modelData.key]
+                options: root.clickActionLabels
+                optionValues: root.clickActions
+                currentValue: SettingsData[modelData.key]
+                onValueChanged: value => SettingsData.set(modelData.key, value)
+            }
+        }
+
+        Repeater {
+            model: root.clickOverrideItems
+
+            delegate: SettingsRow {
+                id: overrideRow
+                required property var modelData
+                readonly property var overrides: (SettingsData.systemTrayItemClickActions || {})[modelData.id] || {}
+
+                title: modelData.title
+                subtitle: modelData.title === modelData.id ? "" : modelData.id
+                leading: IconImage {
+                    visible: overrideRow.modelData.icon !== ""
+                    source: overrideRow.modelData.icon
+                    implicitSize: Theme.iconSize
+                }
+                body: Flow {
+                    width: parent.width
+                    spacing: Theme.spacingL
+
+                    Repeater {
+                        model: root.clickButtons
+
+                        delegate: Row {
+                            id: buttonOverride
+                            required property var modelData
+
+                            spacing: Theme.spacingS
+
+                            StyledText {
+                                anchors.verticalCenter: parent.verticalCenter
+                                text: buttonOverride.modelData.label
+                                font.pixelSize: Theme.fontSizeMedium
+                                color: Theme.surfaceVariantText
+                            }
+
+                            DDropdown {
+                                dropdownWidth: 170
+                                backgroundColor: SettingsMetrics.controlSurface
+                                Accessible.name: overrideRow.modelData.title + " · " + buttonOverride.modelData.label
+                                options: [I18n.tr("Default")].concat(root.clickActionLabels)
+                                optionValues: ["default"].concat(root.clickActions)
+                                currentValue: overrideRow.overrides[buttonOverride.modelData.name] || "default"
+                                onValueChanged: value => TrayMenuManager.setItemClickAction(overrideRow.modelData.id, buttonOverride.modelData.name, value)
+                            }
+                        }
+                    }
+                }
+            }
         }
     }
 }
