@@ -17,7 +17,8 @@ Singleton {
                 y: screen.y,
                 width: screen.width,
                 height: screen.height,
-                scale: CompositorService.getScreenScale(screen)
+                scale: CompositorService.getScreenScale(screen),
+                physicalPixelDensity: screen.physicalPixelDensity
             }))
     readonly property var primaryBar: SettingsData.getPrimaryBarConfig()
     property string maximizedScreens: ""
@@ -28,11 +29,11 @@ Singleton {
             return {
                 config,
                 flattened,
-                barThickness: Theme.barThickness(config.innerPadding ?? SettingsData.barInnerPaddingDefault, screen.scale),
+                barThickness: Theme.barThickness(SettingsData.barInnerPadding(config, screen), screen.scale),
                 wingSize: config.gothCornersEnabled && !flattened && root.barSpansEdge(config) ? Math.max(0, config.gothCornerRadiusOverride ? config.gothCornerRadiusValue ?? 12 : Theme.windowRadius) : 0,
-                popupThickness: Theme.barThickness(Resolver.option(config, "innerPadding", root.primaryBar, SettingsData.barInnerPaddingDefault), screen.scale),
-                islandThickness: Resolver.islandThickness(SettingsData.islandSettings(config), SettingsData.islandDefaultsFor(config)),
-                islandReserve: Resolver.islandReserve(SettingsData.islandSettings(config), SettingsData.islandDefaultsFor(config)),
+                popupThickness: Theme.barThickness(SettingsData.barInnerPadding(config.innerPadding === undefined ? root.primaryBar : config, screen), screen.scale),
+                islandThickness: Resolver.islandThickness(SettingsData.islandSettings(config), SettingsData.islandDefaultsFor(config), screen),
+                islandReserve: Resolver.islandReserve(SettingsData.islandSettings(config), SettingsData.islandDefaultsFor(config), screen),
                 islandFloating: SettingsData.islandSetting(config, "islandFloating"),
                 islandPlacement: SettingsData.islandFreePlacement(config) ? "free" : "edge",
                 islandSatellites: SettingsData.islandSetting(config, "islandSatellitesEnabled")
