@@ -109,7 +109,7 @@ Grid {
                 id: itemArea
                 anchors.fill: parent
                 hoverEnabled: true
-                acceptedButtons: Qt.LeftButton | Qt.RightButton
+                acceptedButtons: Qt.LeftButton | Qt.MiddleButton | Qt.RightButton
                 cursorShape: (root.bar && popupDragHandler.longPressing) ? Qt.DragMoveCursor : Qt.PointingHandCursor
 
                 onPressed: mouse => {
@@ -155,9 +155,16 @@ Grid {
                         return;
                     }
 
-                    if (mouse.button === Qt.LeftButton && !overflowItemRoot.trayItem.onlyMenu) {
+                    switch (TrayMenuManager.clickAction(overflowItemRoot.trayItem, mouse.button)) {
+                    case "activate":
                         overflowItemRoot.trayItem.activate();
                         root.bar.menuOpen = false;
+                        return;
+                    case "secondaryActivate":
+                        overflowItemRoot.trayItem.secondaryActivate();
+                        root.bar.menuOpen = false;
+                        return;
+                    case "none":
                         return;
                     }
                     const localPos = itemArea.mapToGlobal(mouse.x, mouse.y);
