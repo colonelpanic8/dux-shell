@@ -172,6 +172,13 @@ Singleton {
             "section": "right"
         },
         {
+            "id": "idleCountdown",
+            "text": I18n.tr("Idle countdown"),
+            "description": I18n.tr("Time until the screen turns off, locks, or suspends"),
+            "icon": "timer",
+            "section": "right"
+        },
+        {
             "id": "capsLockIndicator",
             "text": I18n.tr("Caps Lock indicator"),
             "description": I18n.tr("Shows when caps lock is active"),
