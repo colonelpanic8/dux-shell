@@ -109,8 +109,7 @@ function hyprlandMinimizedName(name) {
 }
 
 function hyprlandSpecial(ws) {
-    const name = ws.name ?? "";
-    return ws.id < -1 || ws.special === true || (!(ws.id > 0) && (hyprlandSpecialName(name) || name.startsWith("scratch-hidden-")));
+    return !(ws.id > 0) && hyprlandSpecialName(ws.name ?? "");
 }
 
 // Hyprland 0.57 gives named workspaces no id (Quickshell reports -1 for all of them), so the address is their identity
