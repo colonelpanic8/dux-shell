@@ -64,7 +64,15 @@ Card {
     function eventColorsFor(date) {
         if (!CalendarService.calendarAvailable || !CalendarService.hasEventsForDate(date))
             return [];
-        return CalendarService.getEventsForDate(date).map(event => event.color?.length ? event.color : Theme.primary);
+        return CalendarService.getEventsForDate(date).map(event => {
+            const color = event.color?.length ? event.color : Theme.primary;
+            if (!/^(task|vtodo)_/.test(event.id ?? ""))
+                return color;
+            return {
+                "color": color,
+                "kind": event.completed ? "taskDone" : "task"
+            };
+        });
     }
 
     function updateSelectedDateEvents() {
