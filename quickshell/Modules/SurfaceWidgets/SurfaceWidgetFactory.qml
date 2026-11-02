@@ -155,6 +155,7 @@ Item {
             controlCenterButtonComponent,
             capsLockIndicatorComponent,
             idleInhibitorComponent,
+            idleCountdownComponent,
             spacerComponent,
             separatorComponent,
             networkComponent,
@@ -834,6 +835,18 @@ Item {
                     setTriggerScreen: true
                 });
             }
+        }
+    }
+
+    Component {
+        id: idleCountdownComponent
+
+        IdleCountdown {
+            widgetThickness: surfaceContext.widgetThickness
+            barThickness: surfaceContext.thickness
+            axis: surfaceContext.axis
+            section: root.getWidgetSection(parent) || "right"
+            parentScreen: surfaceContext.screen
         }
     }
 
