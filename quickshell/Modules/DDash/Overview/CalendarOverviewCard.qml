@@ -376,6 +376,7 @@ Card {
             weekColumnWidth: DashMetrics.weekColumnWidth
             weekNumberFor: date => root.getWeekNumber(date)
             dotColorsFor: date => root.eventColorsFor(date)
+            countMarkers: true
             revision: root.eventsRevision
             interactive: root.interactive
             onDayClicked: date => {
