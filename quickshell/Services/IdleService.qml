@@ -42,6 +42,36 @@ Singleton {
         postLockMonitorOffMonitor.enabled = enabled && postLockMonitorActive;
         lockMonitor.enabled = base && lockTimeout > 0;
         suspendMonitor.enabled = base && suspendTimeout > 0;
+        countdownRearmed = true;
+    }
+
+    property int countdownRefs: 0
+    // Rearmed with the action monitors so both measure idle time from the same instant.
+    property bool countdownRearmed: true
+    // Epoch ms of the last input, or 0 while active.
+    property double idleSince: 0
+
+    readonly property var nextIdleAction: {
+        const candidates = [[monitorOffMonitor, "monitorOff", monitorTimeout], [postLockMonitorOffMonitor, "monitorOff", postLockMonitorTimeout], [lockMonitor, "lock", isShellLocked ? 0 : lockTimeout], [suspendMonitor, "suspend", suspendTimeout]];
+        let next = null;
+        for (const [monitor, action, timeout] of candidates) {
+            if (!monitor.enabled || monitor.isIdle || timeout <= 0)
+                continue;
+            if (!next || timeout < next.timeout)
+                next = {
+                    "action": action,
+                    "timeout": timeout
+                };
+        }
+        return next;
+    }
+
+    function addCountdownRef() {
+        countdownRefs++;
+    }
+
+    function removeCountdownRef() {
+        countdownRefs = Math.max(0, countdownRefs - 1);
     }
 
     function _rearmIdleMonitors() {
@@ -49,6 +79,7 @@ Singleton {
         postLockMonitorOffMonitor.enabled = false;
         lockMonitor.enabled = false;
         suspendMonitor.enabled = false;
+        countdownRearmed = false;
         Qt.callLater(_applyMonitorEnableds);
     }
 
@@ -151,6 +182,15 @@ Singleton {
             if (isIdle)
                 root.requestSuspend();
         }
+    }
+
+    IdleMonitor {
+        id: activityMonitor
+        timeout: 1
+        respectInhibitors: root.respectInhibitors
+        enabled: root.enabled && root.countdownRefs > 0 && root.countdownRearmed && root.nextIdleAction !== null
+        onEnabledChanged: root.idleSince = 0
+        onIsIdleChanged: root.idleSince = enabled && isIdle ? Date.now() - timeout * 1000 : 0
     }
 
     // Rearming the timeout monitors while idle resets their isIdle without a wake
