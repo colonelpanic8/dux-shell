@@ -15,6 +15,7 @@ BasePill {
     property string screenName: ""
     property string screenModel: ""
     property bool showNetworkIcon: SettingsData.widgetOption("controlCenterButton", widgetData, "showNetworkIcon")
+    property bool showNetworkName: SettingsData.widgetOption("controlCenterButton", widgetData, "showNetworkName")
     property bool showBluetoothIcon: SettingsData.widgetOption("controlCenterButton", widgetData, "showBluetoothIcon")
     property bool showAudioIcon: SettingsData.widgetOption("controlCenterButton", widgetData, "showAudioIcon")
     property bool showAudioPercent: SettingsData.widgetOption("controlCenterButton", widgetData, "showAudioPercent")
@@ -130,6 +131,19 @@ BasePill {
         default:
             return NetworkService.wifiSignalIcon;
         }
+    }
+
+    function getNetworkName() {
+        switch (NetworkService.networkStatus) {
+        case "ethernet":
+        case "cellular":
+        case "disconnected":
+            return "";
+        case "vpn":
+            if (NetworkService.ethernetConnected || NetworkService.cellularConnected)
+                return "";
+        }
+        return NetworkService.currentWifiSSID;
     }
 
     function getNetworkIconColor() {
@@ -648,6 +662,8 @@ BasePill {
                                 return micGroup.width;
                             case "brightness":
                                 return brightnessGroup.width;
+                            case "network":
+                                return root.getControlCenterIconSize() + (networkName.visible ? Theme.spacingXS + networkName.implicitWidth : 0);
                             default:
                                 return root.getControlCenterIconSize();
                             }
@@ -726,6 +742,17 @@ BasePill {
                                 target: iconOnlyItem
                                 running: root.surfaceLive && root.getIconBlinking(horizontalGroupItem.modelData.id)
                             }
+                        }
+
+                        StyledText {
+                            id: networkName
+                            anchors.verticalCenter: parent.verticalCenter
+                            anchors.left: iconOnlyItem.right
+                            anchors.leftMargin: Theme.spacingXS
+                            visible: horizontalGroupItem.modelData.id === "network" && root.showNetworkName && text.length > 0
+                            text: root.getNetworkName()
+                            font.pixelSize: Theme.barTextSize(root.barThickness, root.barConfig?.fontScale, root.barConfig?.maximizeWidgetText)
+                            color: Theme.widgetTextColor
                         }
 
                         Rectangle {
