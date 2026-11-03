@@ -161,6 +161,7 @@ var DEFAULTS = {
         mediaShowLyrics: true,
         mediaSmoothLyrics: false,
         mediaScrollLyrics: false,
+        mediaLyricsBesideTrack: false,
         mediaShowCoverArt: true,
         mediaArtworkShape: "rounded",
         mediaVisualizerMode: "always",

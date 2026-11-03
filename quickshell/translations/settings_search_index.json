@@ -11197,7 +11197,7 @@
     "optionFile": "IslandOptions.qml"
   },
   {
-    "section": "barWidgetOption:MusicOptions.qml:8",
+    "section": "barWidgetOption:MusicOptions.qml:9",
     "label": "Artwork",
     "tabIndex": 22,
     "keywords": [],
@@ -11205,7 +11205,7 @@
     "optionFile": "MusicOptions.qml"
   },
   {
-    "section": "barWidgetOption:MusicOptions.qml:9",
+    "section": "barWidgetOption:MusicOptions.qml:10",
     "label": "Audio visualizer",
     "tabIndex": 22,
     "keywords": [],
@@ -11466,7 +11466,7 @@
     "optionFile": "IslandOptions.qml"
   },
   {
-    "section": "barWidgetOption:MusicOptions.qml:7",
+    "section": "barWidgetOption:MusicOptions.qml:8",
     "label": "Cover art",
     "tabIndex": 22,
     "keywords": [],
@@ -11578,7 +11578,7 @@
     "optionFile": "WorkspaceSwitcherOptions.qml"
   },
   {
-    "section": "barWidgetOption:MusicOptions.qml:11",
+    "section": "barWidgetOption:MusicOptions.qml:12",
     "label": "Duration",
     "tabIndex": 22,
     "keywords": [],
@@ -11859,6 +11859,14 @@
     "optionFile": "IslandOptions.qml"
   },
   {
+    "section": "barWidgetOption:MusicOptions.qml:5",
+    "label": "Keep title and artist",
+    "tabIndex": 22,
+    "keywords": [],
+    "runtimeType": "barWidgetOption",
+    "optionFile": "MusicOptions.qml"
+  },
+  {
     "section": "barWidgetOption:KeyboardLayoutOptions.qml:3",
     "label": "Label overrides",
     "tabIndex": 22,
@@ -11947,7 +11955,7 @@
     "optionFile": "SystemTrayOptions.qml"
   },
   {
-    "section": "barWidgetOption:MusicOptions.qml:12",
+    "section": "barWidgetOption:MusicOptions.qml:13",
     "label": "Maximum title width",
     "tabIndex": 22,
     "keywords": [],
@@ -11963,7 +11971,7 @@
     "optionFile": "IslandOptions.qml"
   },
   {
-    "section": "barWidgetOption:MusicOptions.qml:14",
+    "section": "barWidgetOption:MusicOptions.qml:15",
     "label": "Media player",
     "tabIndex": 22,
     "keywords": [],
@@ -12179,7 +12187,7 @@
     "optionFile": "IslandOptions.qml"
   },
   {
-    "section": "barWidgetOption:MusicOptions.qml:6",
+    "section": "barWidgetOption:MusicOptions.qml:7",
     "label": "Scroll lyrics",
     "tabIndex": 22,
     "keywords": [],
@@ -12187,7 +12195,7 @@
     "optionFile": "MusicOptions.qml"
   },
   {
-    "section": "barWidgetOption:MusicOptions.qml:13",
+    "section": "barWidgetOption:MusicOptions.qml:14",
     "label": "Scroll wheel",
     "tabIndex": 22,
     "keywords": [],
@@ -12395,7 +12403,7 @@
     "optionFile": "LauncherButtonOptions.qml"
   },
   {
-    "section": "barWidgetOption:MusicOptions.qml:5",
+    "section": "barWidgetOption:MusicOptions.qml:6",
     "label": "Smooth lyrics highlight",
     "tabIndex": 22,
     "keywords": [],
@@ -12507,7 +12515,7 @@
     "optionFile": "SystemTrayOptions.qml"
   },
   {
-    "section": "barWidgetOption:MusicOptions.qml:10",
+    "section": "barWidgetOption:MusicOptions.qml:11",
     "label": "Title",
     "tabIndex": 22,
     "keywords": [],
