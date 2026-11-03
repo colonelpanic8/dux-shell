@@ -41,15 +41,16 @@ BasePill {
     readonly property real badgeSize: BarMetrics.mediaControlSize * contentScale
     readonly property real badgeExtent: (hasCoverArt ? badgeSize + Theme.spacingXS : 0) + (showIconSlot ? badgeSize + Theme.spacingXS : 0)
     readonly property string trackSummary: [MprisController.stableTitle, MprisController.stableArtist, MprisController.stableAlbum].filter(part => part).join(" • ")
+    readonly property bool lyricsSynced: lyricsEnabled && LyricsService.controller.enabled && LyricsService.controller.synced
     readonly property bool lyricActive: {
-        if (!lyricsEnabled)
+        if (!lyricsSynced)
             return false;
         const controller = LyricsService.controller;
-        if (!controller.enabled || !controller.synced)
-            return false;
         const parts = controller.lines[controller.activeIndex]?.parts ?? [];
         return parts.some(part => LyricLayout.hasWords(part.x));
     }
+    readonly property bool lyricsBesideTrack: SettingsData.widgetOption("music", widgetData, "mediaLyricsBesideTrack")
+    readonly property bool lyricReplacesTrack: lyricActive && !lyricsBesideTrack
     readonly property int maxTextWidth: {
         const size = SettingsData.widgetOption("music", widgetData, "mediaSize");
         switch (size) {
@@ -91,7 +92,7 @@ BasePill {
     }
 
     function showTrackTooltip() {
-        if (!root.lyricActive || !root.parentScreen)
+        if (!root.lyricReplacesTrack || !root.parentScreen)
             return;
         tooltipLoader.active = true;
         const anchor = root.contextMenuAnchor();
@@ -104,8 +105,8 @@ BasePill {
     }
 
     onIsMouseHoveredChanged: isMouseHovered ? showTrackTooltip() : hideTrackTooltip()
-    onLyricActiveChanged: {
-        if (!lyricActive)
+    onLyricReplacesTrackChanged: {
+        if (!lyricReplacesTrack)
             hideTrackTooltip();
     }
     onClicked: hideTrackTooltip()
@@ -247,7 +248,7 @@ BasePill {
                 if (!root.playerAvailable || root.maxTextWidth <= 0)
                     return 0;
                 // Preserve the fixed-width text slot even if metadata is briefly empty.
-                if (!root.adaptiveWidthEnabled || root.lyricActive)
+                if (!root.adaptiveWidthEnabled || root.lyricReplacesTrack)
                     return root.maxTextWidth;
                 if (textContainer.displayText.length === 0)
                     return 0;
@@ -259,8 +260,12 @@ BasePill {
             readonly property real fixedContentWidth: root.badgeExtent + 64 * root.contentScale + Theme.spacingXS * 2
             readonly property real textBudget: root.allottedPrimarySize > 0 ? Math.max(0, root.allottedPrimarySize - root.horizontalPadding * 2 - fixedContentWidth - Theme.spacingXS) : Infinity
             readonly property real measuredTextWidth: Math.min(naturalTextWidth, textBudget)
-            readonly property real naturalContentWidth: fixedContentWidth + (naturalTextWidth > 0 ? naturalTextWidth + Theme.spacingXS : 0)
-            readonly property int horizontalContentWidth: fixedContentWidth + (measuredTextWidth > 0 ? measuredTextWidth + Theme.spacingXS : 0)
+            // Held for the whole synced track so instrumental gaps do not resize the pill.
+            readonly property real lyricSlotWidth: root.lyricsBesideTrack && root.lyricsSynced ? root.maxTextWidth : 0
+            // The bar shrinks this widget before overflowing anything, so any shortfall drops the lyrics and keeps the title.
+            readonly property real measuredLyricWidth: lyricSlotWidth > 0 && textBudget >= naturalTextWidth + Theme.spacingXS + lyricSlotWidth ? lyricSlotWidth : 0
+            readonly property real naturalContentWidth: fixedContentWidth + (naturalTextWidth > 0 ? naturalTextWidth + Theme.spacingXS : 0) + (lyricSlotWidth > 0 ? lyricSlotWidth + Theme.spacingXS : 0)
+            readonly property int horizontalContentWidth: fixedContentWidth + (measuredTextWidth > 0 ? measuredTextWidth + Theme.spacingXS : 0) + (measuredLyricWidth > 0 ? measuredLyricWidth + Theme.spacingXS : 0)
 
             implicitWidth: root.playerAvailable ? (root.isVerticalOrientation ? root.currentContentWidth : horizontalContentWidth) : 0
             implicitHeight: root.playerAvailable ? root.currentContentHeight : 0
@@ -388,7 +393,7 @@ BasePill {
                             id: mediaText
                             width: contentRoot.measuredTextWidth
                             height: parent.height
-                            visible: !root.lyricActive
+                            visible: !root.lyricReplacesTrack
                             text: textContainer.displayText
                             color: root.contentColor
                             font.pixelSize: Theme.barTextSize(root.barThickness, root.barConfig?.fontScale, root.barConfig?.maximizeWidgetText)
@@ -399,7 +404,43 @@ BasePill {
                         MediaLyricLine {
                             width: contentRoot.measuredTextWidth
                             height: parent.height
-                            visible: root.lyricActive
+                            visible: root.lyricReplacesTrack
+                            controller: LyricsService.controller
+                            color: root.contentColor
+                            font.pixelSize: mediaText.font.pixelSize
+                            live: root.surfaceLive
+                            sweep: SettingsData.widgetOption("music", root.widgetData, "mediaSmoothLyrics")
+                        }
+
+                        MouseArea {
+                            anchors.fill: parent
+                            enabled: root.playerAvailable
+                            cursorShape: Qt.PointingHandCursor
+                            onPressed: mouse => {
+                                root.triggerRipple(this, mouse.x, mouse.y);
+                                root.clicked();
+                            }
+                        }
+                    }
+
+                    Item {
+                        anchors.verticalCenter: parent.verticalCenter
+                        width: contentRoot.measuredLyricWidth
+                        height: root.widgetThickness
+                        visible: width > 0
+                        clip: true
+
+                        Behavior on width {
+                            NumberAnimation {
+                                duration: Theme.mediumDuration
+                                easing.type: Easing.BezierSpline
+                                easing.bezierCurve: Theme.expressiveCurves.emphasizedDecel
+                            }
+                        }
+
+                        MediaLyricLine {
+                            width: contentRoot.lyricSlotWidth
+                            height: parent.height
                             controller: LyricsService.controller
                             color: root.contentColor
                             font.pixelSize: mediaText.font.pixelSize
