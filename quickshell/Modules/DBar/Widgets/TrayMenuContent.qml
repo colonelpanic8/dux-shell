@@ -5,6 +5,7 @@ import QtQuick.Layouts
 import Quickshell
 import qs.Common
 import qs.Modules.DBar
+import qs.Services
 import qs.DCommon.Widgets
 import qs.Widgets
 
@@ -76,6 +77,61 @@ Item {
         menu: {
             const e = root.topEntry();
             return e ? (e.menu || e) : null;
+        }
+    }
+
+    component StepperRow: Item {
+        id: stepper
+
+        property string label: ""
+        property string valueText: ""
+        property bool canDecrease: true
+        property bool canIncrease: true
+
+        signal decrease
+        signal increase
+
+        width: menuColumn.width
+        height: BarMetrics.menuRowHeight
+
+        StyledText {
+            anchors.left: parent.left
+            anchors.leftMargin: Theme.spacingS
+            anchors.verticalCenter: parent.verticalCenter
+            text: stepper.label
+            font.pixelSize: Theme.fontSizeSmall
+            color: Theme.surfaceText
+        }
+
+        Row {
+            anchors.right: parent.right
+            anchors.verticalCenter: parent.verticalCenter
+            spacing: Theme.spacingXXS
+
+            DActionButton {
+                buttonSize: Theme.buttonHeightXS
+                iconName: "remove"
+                iconSize: Theme.iconSizeSmall
+                enabled: stepper.canDecrease
+                onClicked: stepper.decrease()
+            }
+
+            StyledText {
+                anchors.verticalCenter: parent.verticalCenter
+                width: Theme.buttonHeightXS
+                horizontalAlignment: Text.AlignHCenter
+                text: stepper.valueText
+                font.pixelSize: Theme.fontSizeSmall
+                color: Theme.surfaceText
+            }
+
+            DActionButton {
+                buttonSize: Theme.buttonHeightXS
+                iconName: "add"
+                iconSize: Theme.iconSizeSmall
+                enabled: stepper.canIncrease
+                onClicked: stepper.increase()
+            }
         }
     }
 
@@ -152,6 +208,16 @@ Item {
                     root.closeRequested();
                 }
             }
+        }
+
+        StepperRow {
+            visible: entryStack.count === 0
+            label: I18n.tr("Priority")
+            valueText: String(DotfilesService.priority(root.trayItem))
+            canDecrease: DotfilesService.priority(root.trayItem) > -10
+            canIncrease: DotfilesService.priority(root.trayItem) < 10
+            onDecrease: DotfilesService.adjustPriority(root.trayItem, -1)
+            onIncrease: DotfilesService.adjustPriority(root.trayItem, 1)
         }
 
         Rectangle {
