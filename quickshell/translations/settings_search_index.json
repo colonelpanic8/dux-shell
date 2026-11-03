@@ -10943,7 +10943,7 @@
     "optionFile": "IslandOptions.qml"
   },
   {
-    "section": "barWidgetOption:SystemTrayOptions.qml:9",
+    "section": "barWidgetOption:SystemTrayOptions.qml:10",
     "label": "Priority",
     "tabIndex": 22,
     "keywords": [],
