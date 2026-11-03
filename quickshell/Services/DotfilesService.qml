@@ -1,0 +1,67 @@
+pragma Singleton
+
+import QtQuick
+import Quickshell
+import Quickshell.Io
+
+Singleton {
+    id: root
+
+    property var state: ({})
+
+    function trayInfo(item) {
+        return state.tray?.[item?.watcherAddress] || {
+            key: "item-id:" + item?.id,
+            priority: 0
+        };
+    }
+
+    function priority(item) {
+        return trayInfo(item).priority;
+    }
+
+    function adjustPriority(item, delta) {
+        const key = trayInfo(item).key;
+        Quickshell.execDetached(["dms-dotfiles-state", "--priority", key, String(delta)]);
+        const tray = Object.assign({}, state.tray);
+        for (const id in tray) {
+            if (tray[id].key === key)
+                tray[id] = {
+                    key: key,
+                    priority: Math.max(-10, Math.min(10, tray[id].priority + delta))
+                };
+        }
+        state = Object.assign({}, state, {
+            tray: tray
+        });
+    }
+
+    function activate(item) {
+        if (item?.title !== "CrossPaste")
+            return false;
+        Quickshell.execDetached(["hyprctl", "eval", "_G.im_hyprland_open_crosspaste_search()"]);
+        return true;
+    }
+
+    Process {
+        id: collector
+        command: ["dms-dotfiles-state", "--watch"]
+        running: true
+        stdout: SplitParser {
+            onRead: data => {
+                try {
+                    root.state = JSON.parse(data);
+                } catch (error) {
+                    console.warn("Invalid desktop integration state:", error);
+                }
+            }
+        }
+        onExited: retry.restart()
+    }
+
+    Timer {
+        id: retry
+        interval: 5000
+        onTriggered: collector.running = true
+    }
+}
