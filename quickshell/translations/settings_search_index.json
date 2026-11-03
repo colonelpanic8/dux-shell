@@ -10218,6 +10218,14 @@
     "optionFile": "ClockOptions.qml"
   },
   {
+    "section": "barWidgetOption:SystemTrayOptions.qml:9",
+    "label": "Click actions",
+    "tabIndex": 22,
+    "keywords": [],
+    "runtimeType": "barWidgetOption",
+    "optionFile": "SystemTrayOptions.qml"
+  },
+  {
     "section": "barWidgetOption:IslandOptions.qml:12",
     "label": "Clipboard",
     "tabIndex": 22,
