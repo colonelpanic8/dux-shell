@@ -39,6 +39,7 @@ var componentNames = {
     "controlCenterButton": "controlCenterButtonComponent",
     "capsLockIndicator": "capsLockIndicatorComponent",
     "idleInhibitor": "idleInhibitorComponent",
+    "idleCountdown": "idleCountdownComponent",
     "spacer": "spacerComponent",
     "separator": "separatorComponent",
     "network_speed_monitor": "networkComponent",
