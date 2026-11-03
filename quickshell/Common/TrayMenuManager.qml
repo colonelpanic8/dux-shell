@@ -5,6 +5,7 @@ import Quickshell.Services.SystemTray
 import QtQuick
 import qs.Common
 import "../Services/IconThemeIndex.js" as IconIndex
+import "TrayClickActions.js" as TrayClickActions
 
 Singleton {
     id: root
@@ -58,6 +59,22 @@ Singleton {
             key = `${id}::${n}`;
         _trayKeyByItem.set(item, key);
         return key;
+    }
+
+    function clickAction(item, button) {
+        const name = button === Qt.RightButton ? "right" : (button === Qt.MiddleButton ? "middle" : "left");
+        const defaults = {
+            "left": SettingsData.systemTrayLeftClickAction,
+            "middle": SettingsData.systemTrayMiddleClickAction,
+            "right": SettingsData.systemTrayRightClickAction
+        };
+        return TrayClickActions.resolve(item?.id || "", item?.onlyMenu || false, name, defaults, SettingsData.systemTrayItemClickActions);
+    }
+
+    function setItemClickAction(itemId, button, action) {
+        if (!itemId)
+            return;
+        SettingsData.set("systemTrayItemClickActions", TrayClickActions.withOverride(SettingsData.systemTrayItemClickActions, itemId, button, action));
     }
 
     function resolveOrderIndex(key, orderMap) {
