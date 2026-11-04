@@ -4,8 +4,10 @@ pragma ComponentBehavior: Bound
 import QtQuick
 import Quickshell
 import Quickshell.Wayland
+import Quickshell.Hyprland
 import qs.Common
 import qs.Services
+import "../Common/IdleInhibitors.js" as IdleInhibitors
 
 Singleton {
     id: root
@@ -15,6 +17,19 @@ Singleton {
     property bool respectInhibitors: true
 
     readonly property bool externalInhibitActive: DMSService.screensaverInhibited
+
+    // Wayland idle inhibitors held by windows (or layer surfaces). Only observable
+    // by comparing an inhibitor-respecting probe against one that ignores them,
+    // so it updates after a second without input and holds its value otherwise.
+    property bool compositorInhibitActive: false
+    readonly property bool hyprlandWindowInfo: CompositorService.isHyprland
+    readonly property var inhibitingWindows: compositorInhibitActive && hyprlandWindowInfo ? IdleInhibitors.inhibitingWindows(Hyprland.toplevels.values.map(t => t.lastIpcObject)) : []
+    readonly property bool filterWindowInhibitors: respectInhibitors && hyprlandWindowInfo && SettingsData.idleInhibitIgnoredWindows.trim() !== ""
+    readonly property var activeInhibitingWindows: filterWindowInhibitors ? inhibitingWindows.filter(w => !IdleInhibitors.isWindowIgnored(w, SettingsData.idleInhibitIgnoredWindows)) : inhibitingWindows
+    // With no window to blame, the inhibitor is a layer surface (or not refreshed yet).
+    readonly property bool windowInhibitActive: compositorInhibitActive && (inhibitingWindows.length === 0 || activeInhibitingWindows.length > 0)
+    // Filtering means the timers ignore compositor inhibitors and are gated on windowInhibitActive instead.
+    readonly property bool monitorsRespectInhibitors: respectInhibitors && !filterWindowInhibitors
 
     readonly property bool isOnBattery: BatteryService.batteryAvailable && !BatteryService.isPluggedIn
     readonly property int monitorTimeout: isOnBattery ? SettingsData.batteryMonitorTimeout : SettingsData.acMonitorTimeout
@@ -37,11 +52,41 @@ Singleton {
         // compositor honoring the bar-surface zwp_idle_inhibit inhibitor,
         // which goes inactive whenever the bar surface is occluded
         // (fullscreen windows) or hidden (auto-hide).
-        const base = enabled && !SessionService.idleInhibited && !externalInhibitActive;
+        const base = enabled && !SessionService.idleInhibited && !externalInhibitActive && !(filterWindowInhibitors && windowInhibitActive);
         monitorOffMonitor.enabled = base && monitorTimeout > 0 && !postLockMonitorActive;
         postLockMonitorOffMonitor.enabled = enabled && postLockMonitorActive;
         lockMonitor.enabled = base && lockTimeout > 0;
         suspendMonitor.enabled = base && suspendTimeout > 0;
+        countdownRearmed = true;
+    }
+
+    property int countdownRefs: 0
+    // Rearmed with the action monitors so both measure idle time from the same instant.
+    property bool countdownRearmed: true
+    // Epoch ms of the last input, or 0 while active.
+    property double idleSince: 0
+
+    readonly property var nextIdleAction: {
+        const candidates = [[monitorOffMonitor, "monitorOff", monitorTimeout], [postLockMonitorOffMonitor, "monitorOff", postLockMonitorTimeout], [lockMonitor, "lock", isShellLocked ? 0 : lockTimeout], [suspendMonitor, "suspend", suspendTimeout]];
+        let next = null;
+        for (const [monitor, action, timeout] of candidates) {
+            if (!monitor.enabled || monitor.isIdle || timeout <= 0)
+                continue;
+            if (!next || timeout < next.timeout)
+                next = {
+                    "action": action,
+                    "timeout": timeout
+                };
+        }
+        return next;
+    }
+
+    function addCountdownRef() {
+        countdownRefs++;
+    }
+
+    function removeCountdownRef() {
+        countdownRefs = Math.max(0, countdownRefs - 1);
     }
 
     function _rearmIdleMonitors() {
@@ -49,6 +94,7 @@ Singleton {
         postLockMonitorOffMonitor.enabled = false;
         lockMonitor.enabled = false;
         suspendMonitor.enabled = false;
+        countdownRearmed = false;
         Qt.callLater(_applyMonitorEnableds);
     }
 
@@ -82,7 +128,7 @@ Singleton {
     IdleMonitor {
         id: monitorOffMonitor
         timeout: root.monitorTimeout > 0 ? root.monitorTimeout : 86400
-        respectInhibitors: root.respectInhibitors
+        respectInhibitors: root.monitorsRespectInhibitors
         enabled: false
         onIsIdleChanged: {
             if (!enabled)
@@ -105,7 +151,7 @@ Singleton {
     IdleMonitor {
         id: postLockMonitorOffMonitor
         timeout: root.postLockMonitorTimeout > 0 ? root.postLockMonitorTimeout : 86400
-        respectInhibitors: root.respectInhibitors
+        respectInhibitors: root.monitorsRespectInhibitors
         enabled: false
         onIsIdleChanged: {
             if (!enabled)
@@ -121,7 +167,7 @@ Singleton {
     IdleMonitor {
         id: lockMonitor
         timeout: root.lockTimeout > 0 ? root.lockTimeout : 86400
-        respectInhibitors: root.respectInhibitors
+        respectInhibitors: root.monitorsRespectInhibitors
         enabled: false
         onIsIdleChanged: {
             if (!enabled)
@@ -143,7 +189,7 @@ Singleton {
     IdleMonitor {
         id: suspendMonitor
         timeout: root.suspendTimeout > 0 ? root.suspendTimeout : 86400
-        respectInhibitors: root.respectInhibitors
+        respectInhibitors: root.monitorsRespectInhibitors
         enabled: false
         onIsIdleChanged: {
             if (!enabled)
@@ -151,6 +197,54 @@ Singleton {
             if (isIdle)
                 root.requestSuspend();
         }
+    }
+
+    IdleMonitor {
+        id: activityMonitor
+        timeout: 1
+        respectInhibitors: root.monitorsRespectInhibitors
+        enabled: root.enabled && root.countdownRefs > 0 && root.countdownRearmed && root.nextIdleAction !== null
+        onEnabledChanged: root.idleSince = 0
+        onIsIdleChanged: root.idleSince = enabled && isIdle ? Date.now() - timeout * 1000 : 0
+    }
+
+    IdleMonitor {
+        id: inputProbe
+        timeout: 1
+        respectInhibitors: false
+        enabled: root.enabled && root.respectInhibitors && (root.countdownRefs > 0 || root.filterWindowInhibitors)
+        onEnabledChanged: {
+            if (!enabled)
+                root.compositorInhibitActive = false;
+        }
+        onIsIdleChanged: probeSettle.restart()
+    }
+
+    IdleMonitor {
+        id: inhibitProbe
+        timeout: 1
+        respectInhibitors: true
+        enabled: inputProbe.enabled
+        onIsIdleChanged: probeSettle.restart()
+    }
+
+    // Both probes fire together; wait for the pair to settle before comparing.
+    Timer {
+        id: probeSettle
+        interval: 250
+        onTriggered: {
+            if (inputProbe.enabled && inputProbe.isIdle)
+                root.compositorInhibitActive = !inhibitProbe.isIdle;
+        }
+    }
+
+    // Hyprland sends no event when a window starts or stops inhibiting.
+    Timer {
+        interval: 10000
+        repeat: true
+        triggeredOnStart: true
+        running: root.compositorInhibitActive && root.hyprlandWindowInfo
+        onTriggered: Hyprland.refreshToplevels()
     }
 
     // Rearming the timeout monitors while idle resets their isIdle without a wake
@@ -217,6 +311,19 @@ Singleton {
             log.info("External idle inhibit released");
         }
         _rearmIdleMonitors();
+    }
+
+    onWindowInhibitActiveChanged: {
+        if (filterWindowInhibitors)
+            _rearmIdleMonitors();
+    }
+
+    onFilterWindowInhibitorsChanged: _rearmIdleMonitors()
+
+    readonly property string activeInhibitorKey: activeInhibitingWindows.map(w => w.address).join(",")
+    onActiveInhibitorKeyChanged: {
+        if (activeInhibitorKey)
+            log.info("Idle inhibited by windows:", activeInhibitingWindows.map(w => w.appId + " (" + w.title + ")").join(", "));
     }
 
     onSleepBlockedChanged: {
