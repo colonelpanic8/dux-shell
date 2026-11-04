@@ -737,6 +737,7 @@ Singleton {
     property int acLockTimeout: Spec.SPEC.acLockTimeout.def
     property int acSuspendTimeout: Spec.SPEC.acSuspendTimeout.def
     property string idleInhibitIgnoredWindows: Spec.SPEC.idleInhibitIgnoredWindows.def
+    property bool idleRespectInhibitors: Spec.SPEC.idleRespectInhibitors.def
     property int acSuspendBehavior: SettingsData.SuspendBehavior.Suspend
     property string acProfileName: Spec.SPEC.acProfileName.def
     property int acPostLockMonitorTimeout: Spec.SPEC.acPostLockMonitorTimeout.def

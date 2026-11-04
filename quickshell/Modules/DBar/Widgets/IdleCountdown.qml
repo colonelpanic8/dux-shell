@@ -24,6 +24,8 @@ BasePill {
         switch (i.kind) {
         case "manual":
             return I18n.tr("Idle inhibitor");
+        case "respect":
+            return I18n.tr("Respect app inhibitors", "idle inhibitor menu switch: whether other apps can hold off screen off, lock and suspend");
         case "compositor":
             return I18n.tr("Unknown");
         default:
@@ -175,9 +177,18 @@ BasePill {
                     // The manual row is always offered so the menu can also turn keep-awake on.
                     model: [
                         {
+                            "key": "respect",
+                            "kind": "respect",
+                            "active": IdleService.respectInhibitors,
+                            "allowed": IdleService.respectInhibitors,
+                            "canIgnore": true,
+                            "ignoredByConfig": false
+                        },
+                        {
                             "key": "manual",
                             "kind": "manual",
                             "active": SessionService.idleInhibited,
+                            "allowed": SessionService.idleInhibited,
                             "canIgnore": true,
                             "ignoredByConfig": false
                         }
@@ -231,7 +242,11 @@ BasePill {
                                     anchors.centerIn: parent
                                     visible: !rowAppIcon.visible
                                     size: parent.width
-                                    name: inhibitorRow.modelData.kind === "manual" ? "local_cafe" : inhibitorRow.modelData.kind === "compositor" ? "help" : "desktop_windows"
+                                    name: ({
+                                            "respect": "apps",
+                                            "manual": "local_cafe",
+                                            "compositor": "help"
+                                        })[inhibitorRow.modelData.kind] ?? "desktop_windows"
                                     color: Theme.onSurfaceVariant
                                 }
                             }
@@ -266,13 +281,21 @@ BasePill {
                             anchors.rightMargin: Theme.spacingM
                             anchors.verticalCenter: parent.verticalCenter
                             hideText: true
-                            checked: inhibitorRow.modelData.active
-                            enabled: inhibitorRow.modelData.canIgnore && !inhibitorRow.modelData.ignoredByConfig
+                            readonly property bool appSource: inhibitorRow.modelData.kind !== "manual" && inhibitorRow.modelData.kind !== "respect"
+                            // App sources keep their own setting while app inhibitors as a whole are ignored.
+                            checked: inhibitorRow.modelData.allowed
+                            enabled: inhibitorRow.modelData.canIgnore && !inhibitorRow.modelData.ignoredByConfig && (!appSource || IdleService.respectInhibitors)
                             onToggled: checked => {
-                                if (inhibitorRow.modelData.kind === "manual")
+                                switch (inhibitorRow.modelData.kind) {
+                                case "respect":
+                                    SettingsData.set("idleRespectInhibitors", checked);
+                                    break;
+                                case "manual":
                                     checked ? SessionService.enableIdleInhibit() : SessionService.disableIdleInhibit();
-                                else
+                                    break;
+                                default:
                                     IdleService.setInhibitorIgnored(inhibitorRow.modelData.key, !checked);
+                                }
                             }
                         }
                     }
