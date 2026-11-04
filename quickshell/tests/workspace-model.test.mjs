@@ -178,42 +178,30 @@ test("mango padding shows the first tags as real targets and caps at the tag cou
     assert.deepEqual(pick(model.mangoWorkspacesForScreen(dp1, "DP-1", true, 2), "id"), [0, 1, 2, 3, 4]);
 });
 
-test("hyprland special workspaces are opt-in, listed last on their monitor and active while overlaid", () => {
+test("hyprland specials are opt-in and collapse into one minimized bucket on the monitor holding minimized windows", () => {
     const raw = hyprland("twoScreens");
+    assert.deepEqual(pick(model.hyprlandWorkspacesForScreen(raw, "DP-1", false, false, 0, true), "name"), ["1", "3"]);
+    const minimized = { id: 0, name: "special:minimized", monitor: raw.monitors.find(m => m.name === "DP-1"), lastIpcObject: { monitor: "DP-1" }, active: false, urgent: false };
+    const win = { address: "0xd" };
+    raw.workspaces.push(minimized);
+    raw.toplevels.push({ workspace: minimized, wayland: win });
+    raw.windows.push(win);
     assert.deepEqual(pick(model.hyprlandWorkspacesForScreen(raw, "DP-1", false, false, 0, false), "id"), [1, 3]);
     const shown = model.hyprlandWorkspacesForScreen(raw, "DP-1", false, false, 0, true);
-    assert.deepEqual(pick(shown, "name"), ["1", "3", "scratch", "special"]);
-    assert.deepEqual(plain(shown[2]), { id: -98, idx: null, name: "scratch", output: "DP-1", active: false, placeholder: false, urgent: false, special: true });
-    assert.deepEqual(plain(shown[3]), { id: null, idx: null, name: "special", output: "DP-1", active: false, placeholder: false, urgent: false, special: true });
-    assert.deepEqual(pick(model.hyprlandWorkspacesForScreen(raw, "HDMI-A-1", false, false, 0, true), "name"), ["2", "4", "chat", "special"]);
-    assert.deepEqual(pick(model.hyprlandWorkspacesForScreen(raw, "HDMI-A-1", true, false, 0, true), "name"), ["1", "2", "3", "4", "chat", "scratch", "special"]);
-    assert.deepEqual(pick(model.hyprlandWorkspacesForScreen(raw, "DP-1", false, true, 0, true), "name"), ["1", "3", "special"]);
-    raw.visibleSpecials = { "DP-1": "special:scratch" };
-    assert.deepEqual(pick(model.hyprlandWorkspacesForScreen(raw, "DP-1", false, true, 0, true), "active"), [false, true, true, false]);
+    assert.deepEqual(pick(shown, "name"), ["1", "3", "M"]);
+    assert.deepEqual(pick(model.hyprlandWorkspacesForScreen(raw, "HDMI-A-1", false, false, 0, true), "name"), ["2", "4", "chat"]);
+    assert.deepEqual(pick(model.hyprlandWorkspacesForScreen(raw, "HDMI-A-1", true, false, 0, true), "name"), ["1", "2", "3", "4", "chat", "M"]);
+    assert.deepEqual(pick(model.hyprlandWindowsOnWorkspace(raw.windows, shown[2], raw.toplevels), "address"), ["0xd"]);
+});
+
+test("hyprland active workspace is the special overlaid on the monitor", () => {
+    const raw = hyprland("twoScreens");
     raw.visibleSpecials = { "HDMI-A-1": "special:special" };
-    assert.deepEqual(pick(model.hyprlandWorkspacesForScreen(raw, "HDMI-A-1", false, false, 0, true), "active"), [true, false, false, true]);
-    assert.equal(model.hyprlandWorkspacesForScreen(raw, "DP-1", true, false, 0, true).at(-1).active, true);
     assert.deepEqual(plain(model.hyprlandActiveWorkspace(raw, "HDMI-A-1")), { id: "special:special", idx: null, name: "special", output: "HDMI-A-1", active: true, placeholder: false, special: true });
     assert.deepEqual(pick([model.hyprlandActiveWorkspace(raw, "DP-1")], "id"), [3]);
     raw.visibleSpecials = { "DP-1": "special:scratch" };
     assert.deepEqual(plain(model.hyprlandActiveWorkspace(raw, "DP-1")), { id: -98, idx: null, name: "scratch", output: "DP-1", active: true, placeholder: false, special: true });
-});
-
-test("hyprland specials without ids match windows by name", () => {
-    const raw = hyprland("twoScreens");
-    const scratch = raw.workspaces.find(ws => ws.name === "special:scratch");
-    scratch.id = 0;
-    raw.workspaces.push({ id: 0, name: "special:special", monitor: raw.monitors[0], lastIpcObject: { monitor: "DP-1" }, active: false, urgent: false });
-    const win = { address: "0xd" };
-    raw.toplevels.push({ workspace: scratch, wayland: win });
-    raw.windows.push(win);
-    const shown = model.hyprlandWorkspacesForScreen(raw, "DP-1", false, true, 0, true);
-    assert.deepEqual(pick(shown, "name"), ["1", "3", "scratch", "special"]);
-    assert.equal(model.hyprlandWorkspaceOccupied(raw.toplevels, shown[2]), true);
-    assert.equal(model.hyprlandWorkspaceOccupied(raw.toplevels, shown[3]), false);
-    assert.deepEqual(pick(model.hyprlandWindowsOnWorkspace(raw.windows, shown[2], raw.toplevels), "address"), ["0xd"]);
-    assert.deepEqual(model.hyprlandWindowsOnWorkspace(raw.windows, shown[3], raw.toplevels), []);
-    raw.visibleSpecials = { "DP-1": "special:scratch" };
+    raw.workspaces.find(ws => ws.name === "special:scratch").id = 0;
     assert.equal(model.hyprlandActiveWorkspace(raw, "DP-1").id, "special:scratch");
 });
 
