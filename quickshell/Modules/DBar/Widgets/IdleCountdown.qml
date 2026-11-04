@@ -4,7 +4,7 @@ import Quickshell.Widgets
 import qs.Common
 import qs.Modules.Plugins
 import qs.Services
-import qs.DCommon.Common
+import qs.DCommon.Common as DCommon
 import qs.DCommon.Widgets
 import qs.Widgets
 
@@ -88,10 +88,10 @@ BasePill {
             font.pixelSize: root.textPixelSize
         }
 
-        readonly property real digitWidth: Math.ceil(Fonts.textWidth(probe.font, Fonts.widestDigit(probe.font)))
+        readonly property real digitWidth: Math.ceil(DCommon.Fonts.textWidth(probe.font, DCommon.Fonts.widestDigit(probe.font)))
 
         function cellWidth(ch) {
-            return /\d/.test(ch) ? digitWidth : Math.ceil(Fonts.textWidth(probe.font, ch));
+            return /\d/.test(ch) ? digitWidth : Math.ceil(DCommon.Fonts.textWidth(probe.font, ch));
         }
 
         function textWidth(str) {
@@ -189,7 +189,7 @@ BasePill {
                         readonly property bool focusable: !!modelData.address
 
                         width: parent.width
-                        height: Math.max(Style.menuRowHeight, rowContent.implicitHeight + Theme.spacingS * 2)
+                        height: Math.max(DCommon.Style.menuRowHeight, rowContent.implicitHeight + Theme.spacingS * 2)
                         radius: Theme.cornerRadiusM
                         color: focusable && rowMouse.containsMouse ? Theme.withAlpha(Theme.onSurface, Theme.stateLayerHover) : "transparent"
 
@@ -215,7 +215,7 @@ BasePill {
                             spacing: Theme.spacingM
 
                             Item {
-                                width: Style.menuItemIconSize
+                                width: DCommon.Style.menuItemIconSize
                                 height: width
                                 anchors.verticalCenter: parent.verticalCenter
 
@@ -237,7 +237,7 @@ BasePill {
                             }
 
                             Column {
-                                width: rowContent.width - Style.menuItemIconSize - rowContent.spacing
+                                width: rowContent.width - DCommon.Style.menuItemIconSize - rowContent.spacing
                                 anchors.verticalCenter: parent.verticalCenter
 
                                 StyledText {
