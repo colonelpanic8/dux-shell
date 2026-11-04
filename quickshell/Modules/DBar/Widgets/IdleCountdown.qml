@@ -1,14 +1,42 @@
 import QtQuick
+import Quickshell
 import qs.Common
 import qs.Modules.Plugins
 import qs.Services
 import qs.DCommon.Common
 import qs.DCommon.Widgets
+import qs.Widgets
 
 BasePill {
     id: root
 
-    readonly property bool inhibited: SessionService.idleInhibited || IdleService.externalInhibitActive
+    readonly property bool inhibited: SessionService.idleInhibited || IdleService.externalInhibitActive || IdleService.windowInhibitActive
+    readonly property var inhibitors: {
+        const list = [];
+        if (SessionService.idleInhibited)
+            list.push({
+                "name": I18n.tr("Idle inhibitor"),
+                "detail": ""
+            });
+        for (const i of DMSService.screensaverInhibitors)
+            list.push({
+                "name": i.appName,
+                "detail": i.reason || ""
+            });
+        for (const w of IdleService.activeInhibitingWindows)
+            list.push({
+                "name": Paths.getAppName(w.appId, DesktopEntries.heuristicLookup(Paths.moddedAppId(w.appId))),
+                "detail": w.title
+            });
+        if (list.length === 0 && IdleService.windowInhibitActive)
+            list.push({
+                "name": I18n.tr("Unknown"),
+                "detail": ""
+            });
+        return list;
+    }
+    readonly property string inhibitorLabel: inhibitors.length === 0 ? "--" : inhibitors[0].name + (inhibitors.length > 1 ? " +" + (inhibitors.length - 1) : "")
+    readonly property string inhibitorSummary: inhibitors.map(i => i.detail && i.detail !== i.name ? i.name + " — " + i.detail : i.name).join("\n")
     readonly property var nextAction: IdleService.nextIdleAction
     readonly property double idleSince: IdleService.idleSince
     property double now: Date.now()
@@ -98,6 +126,31 @@ BasePill {
 
     onIdleSinceChanged: now = Date.now()
 
+    Loader {
+        id: tooltipLoader
+        active: false
+        sourceComponent: DTooltip {}
+    }
+
+    function showInhibitorTooltip() {
+        if (!root.inhibited || !root.inhibitorSummary || !root.parentScreen)
+            return;
+        tooltipLoader.active = true;
+        const anchor = root.contextMenuAnchor();
+        tooltipLoader.item.show(root.inhibitorSummary, anchor.x, anchor.y, anchor.screen, anchor.isVertical && anchor.edge === "left", anchor.isVertical && anchor.edge === "right");
+    }
+
+    function hideInhibitorTooltip() {
+        tooltipLoader.item?.hide();
+        tooltipLoader.active = false;
+    }
+
+    onIsMouseHoveredChanged: isMouseHovered ? showInhibitorTooltip() : hideInhibitorTooltip()
+    onInhibitedChanged: {
+        if (!inhibited)
+            hideInhibitorTooltip();
+    }
+
     Component.onCompleted: IdleService.addCountdownRef()
     Component.onDestruction: IdleService.removeCountdownRef()
 
@@ -145,11 +198,25 @@ BasePill {
                 }
 
                 CountdownLabel {
+                    visible: !root.inhibited
+                    anchors.verticalCenter: parent.verticalCenter
+                }
+
+                StyledText {
+                    visible: root.inhibited
+                    text: root.inhibitorLabel
+                    width: Math.min(implicitWidth, root.barThickness * 4)
+                    elide: Text.ElideRight
+                    font.pixelSize: root.textPixelSize
+                    color: root.contentColor
                     anchors.verticalCenter: parent.verticalCenter
                 }
             }
         }
     }
 
-    onClicked: SessionService.toggleIdleInhibit()
+    onClicked: {
+        hideInhibitorTooltip();
+        SessionService.toggleIdleInhibit();
+    }
 }
