@@ -373,14 +373,6 @@ BasePill {
         }
     }
 
-    // With nothing but keep-awake to manage, a click keeps toggling it directly.
-    onClicked: {
-        if (IdleService.inhibitors.some(i => i.kind !== "manual")) {
-            openInhibitorMenu();
-            return;
-        }
-        hideInhibitorTooltip();
-        SessionService.toggleIdleInhibit();
-    }
+    onClicked: openInhibitorMenu()
     onRightClicked: openInhibitorMenu()
 }
