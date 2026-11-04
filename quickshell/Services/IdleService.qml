@@ -16,20 +16,44 @@ Singleton {
     property bool enabled: true
     property bool respectInhibitors: true
 
-    readonly property bool externalInhibitActive: DMSService.screensaverInhibited
-
     // Wayland idle inhibitors held by windows (or layer surfaces). Only observable
     // by comparing an inhibitor-respecting probe against one that ignores them,
     // so it updates after a second without input and holds its value otherwise.
     property bool compositorInhibitActive: false
     readonly property bool hyprlandWindowInfo: CompositorService.isHyprland
-    readonly property var inhibitingWindows: compositorInhibitActive && hyprlandWindowInfo ? IdleInhibitors.inhibitingWindows(Hyprland.toplevels.values.map(t => t.lastIpcObject)) : []
-    readonly property bool filterWindowInhibitors: respectInhibitors && hyprlandWindowInfo && SettingsData.idleInhibitIgnoredWindows.trim() !== ""
-    readonly property var activeInhibitingWindows: filterWindowInhibitors ? inhibitingWindows.filter(w => !IdleInhibitors.isWindowIgnored(w, SettingsData.idleInhibitIgnoredWindows)) : inhibitingWindows
-    // With no window to blame, the inhibitor is a layer surface (or not refreshed yet).
-    readonly property bool windowInhibitActive: compositorInhibitActive && (inhibitingWindows.length === 0 || activeInhibitingWindows.length > 0)
+    // Keys of inhibitors the user switched off; they last as long as the window or D-Bus caller.
+    property var ignoredInhibitors: []
+    readonly property bool inhibitorSourcesActive: compositorInhibitActive || DMSService.screensaverInhibitors.length > 0
+    readonly property var inhibitors: IdleInhibitors.collect({
+        "manual": SessionService.idleInhibited,
+        "screensaver": DMSService.screensaverInhibitors,
+        "clients": hyprlandWindowInfo && inhibitorSourcesActive ? Hyprland.toplevels.values.map(t => t.lastIpcObject) : [],
+        "compositorInhibited": compositorInhibitActive,
+        "windowInfo": hyprlandWindowInfo,
+        "filter": SettingsData.idleInhibitIgnoredWindows,
+        "ignored": ignoredInhibitors
+    })
+    readonly property var activeInhibitors: inhibitors.filter(i => i.active)
+    readonly property bool externalInhibitActive: activeInhibitors.some(i => i.kind === "screensaver")
+    readonly property bool windowInhibitActive: activeInhibitors.some(i => i.kind === "window" || i.kind === "compositor")
+    readonly property bool filterWindowInhibitors: respectInhibitors && hyprlandWindowInfo && (SettingsData.idleInhibitIgnoredWindows.trim() !== "" || ignoredInhibitors.some(k => !k.startsWith("dbus:")))
     // Filtering means the timers ignore compositor inhibitors and are gated on windowInhibitActive instead.
     readonly property bool monitorsRespectInhibitors: respectInhibitors && !filterWindowInhibitors
+
+    function setInhibitorIgnored(key, ignored) {
+        const rest = ignoredInhibitors.filter(k => k !== key);
+        ignoredInhibitors = ignored ? rest.concat([key]) : rest;
+    }
+
+    function _pruneIgnoredInhibitors() {
+        if (ignoredInhibitors.length === 0)
+            return;
+        const cookies = DMSService.screensaverInhibitors.map(i => "dbus:" + i.cookie);
+        const windows = hyprlandWindowInfo ? Hyprland.toplevels.values.map(t => "window:" + (t.lastIpcObject?.address ?? "")) : [];
+        const live = ignoredInhibitors.filter(k => cookies.includes(k) || windows.includes(k) || (k === "compositor" && compositorInhibitActive));
+        if (live.length !== ignoredInhibitors.length)
+            ignoredInhibitors = live;
+    }
 
     readonly property bool isOnBattery: BatteryService.batteryAvailable && !BatteryService.isPluggedIn
     readonly property int monitorTimeout: isOnBattery ? SettingsData.batteryMonitorTimeout : SettingsData.acMonitorTimeout
@@ -243,7 +267,7 @@ Singleton {
         interval: 10000
         repeat: true
         triggeredOnStart: true
-        running: root.compositorInhibitActive && root.hyprlandWindowInfo
+        running: root.inhibitorSourcesActive && root.hyprlandWindowInfo
         onTriggered: Hyprland.refreshToplevels()
     }
 
@@ -320,11 +344,13 @@ Singleton {
 
     onFilterWindowInhibitorsChanged: _rearmIdleMonitors()
 
-    readonly property string activeInhibitorKey: activeInhibitingWindows.map(w => w.address).join(",")
+    readonly property string activeInhibitorKey: activeInhibitors.map(i => i.key).join(",")
     onActiveInhibitorKeyChanged: {
         if (activeInhibitorKey)
-            log.info("Idle inhibited by windows:", activeInhibitingWindows.map(w => w.appId + " (" + w.title + ")").join(", "));
+            log.info("Idle inhibited by:", activeInhibitors.map(i => (i.appId || i.kind) + (i.title ? " (" + i.title + ")" : "")).join(", "));
     }
+
+    onInhibitorsChanged: Qt.callLater(_pruneIgnoredInhibitors)
 
     onSleepBlockedChanged: {
         log.info(sleepBlocked ? "Sleep blocked by logind inhibitor" : "Sleep inhibitor released");
