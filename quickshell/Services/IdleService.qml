@@ -14,7 +14,8 @@ Singleton {
     readonly property var log: Log.scoped("IdleService")
 
     property bool enabled: true
-    property bool respectInhibitors: true
+    // Off: app inhibitors (D-Bus and Wayland) are still listed but never hold off the timers.
+    readonly property bool respectInhibitors: SettingsData.idleRespectInhibitors
 
     // Wayland idle inhibitors held by windows (or layer surfaces). Only observable
     // by comparing an inhibitor-respecting probe against one that ignores them,
@@ -31,7 +32,8 @@ Singleton {
         "compositorInhibited": compositorInhibitActive,
         "windowInfo": hyprlandWindowInfo,
         "filter": SettingsData.idleInhibitIgnoredWindows,
-        "ignored": ignoredInhibitors
+        "ignored": ignoredInhibitors,
+        "respect": respectInhibitors
     })
     readonly property var activeInhibitors: inhibitors.filter(i => i.active)
     readonly property bool externalInhibitActive: activeInhibitors.some(i => i.kind === "screensaver")
@@ -236,7 +238,7 @@ Singleton {
         id: inputProbe
         timeout: 1
         respectInhibitors: false
-        enabled: root.enabled && root.respectInhibitors && (root.countdownRefs > 0 || root.filterWindowInhibitors)
+        enabled: root.enabled && (root.countdownRefs > 0 || root.filterWindowInhibitors)
         onEnabledChanged: {
             if (!enabled)
                 root.compositorInhibitActive = false;
@@ -343,6 +345,7 @@ Singleton {
     }
 
     onFilterWindowInhibitorsChanged: _rearmIdleMonitors()
+    onRespectInhibitorsChanged: _rearmIdleMonitors()
 
     readonly property string activeInhibitorKey: activeInhibitors.map(i => i.key).join(",")
     onActiveInhibitorKeyChanged: {

@@ -1166,6 +1166,9 @@ var LOCAL_SPEC = {
     idleInhibitIgnoredWindows: {
         def: ""
     },
+    idleRespectInhibitors: {
+        def: true
+    },
     acPostLockMonitorTimeout: {
         def: 0
     },

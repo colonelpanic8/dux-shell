@@ -30,6 +30,7 @@ function clientWindow(c) {
 function entry(key, kind, fields, state) {
     const ignoredByConfig = !!state.filter && (kind === "window" || kind === "screensaver") && isWindowIgnored(fields, state.filter);
     const ignored = state.ignored.includes(key);
+    const allowed = !ignored && !ignoredByConfig;
     return Object.assign({
         "key": key,
         "kind": kind,
@@ -42,12 +43,14 @@ function entry(key, kind, fields, state) {
         "canIgnore": true,
         "ignoredByConfig": ignoredByConfig,
         "ignored": ignored,
-        "active": !ignored && !ignoredByConfig
+        "allowed": allowed,
+        "active": allowed && (kind === "manual" || state.respect !== false)
     }, fields);
 }
 
 // Every current idle inhibitor, ignored ones included. state: { manual, screensaver,
-// clients (Hyprland IPC objects), compositorInhibited, windowInfo, filter, ignored (keys) }.
+// clients (Hyprland IPC objects), compositorInhibited, windowInfo, filter, ignored (keys),
+// respect (false: only the manual inhibitor is active) }.
 function collect(state) {
     const list = [];
     const clients = (state.clients || []).filter(c => c && c.address);

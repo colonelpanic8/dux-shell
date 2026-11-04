@@ -53,3 +53,13 @@ test("switched-off and config-ignored inhibitors stay listed but inactive", () =
     const clients = [{ address: "0xa", class: "google-chrome", title: "Kalshi", inhibitingIdle: true }, { address: "0xb", class: "mpv", title: "movie", inhibitingIdle: true }];
     assert.deepEqual(summary({ compositorInhibited: true, clients, filter: "/kalshi/", ignored: ["window:0xb"] }), ["window:0xa:0xa:false", "window:0xb:0xb:false"]);
 });
+
+test("with app inhibitors not respected only the manual one is active, and switches keep their state", () => {
+    const clients = [{ address: "0xa", class: "google-chrome", title: "Kalshi", inhibitingIdle: true }];
+    const entries = plain(idle.collect({ ...base, respect: false, manual: true, compositorInhibited: true, clients, screensaver: [{ cookie: 1, appName: "mpv" }], ignored: ["dbus:1"] }));
+    assert.deepEqual(entries.map(e => [e.key, e.active, e.allowed]), [
+        ["manual", true, true],
+        ["dbus:1", false, false],
+        ["window:0xa", false, true]
+    ]);
+});
