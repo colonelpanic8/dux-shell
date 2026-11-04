@@ -1118,6 +1118,9 @@ var LOCAL_SPEC = {
     acProfileName: {
         def: ""
     },
+    idleInhibitIgnoredWindows: {
+        def: ""
+    },
     acPostLockMonitorTimeout: {
         def: 0
     },

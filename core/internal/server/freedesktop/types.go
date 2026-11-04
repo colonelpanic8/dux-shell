@@ -40,6 +40,7 @@ type ScreensaverInhibitor struct {
 	AppName   string `json:"appName"`
 	Reason    string `json:"reason"`
 	Peer      string `json:"peer"`
+	Pid       uint32 `json:"pid"`
 	StartTime int64  `json:"startTime"`
 }
 
