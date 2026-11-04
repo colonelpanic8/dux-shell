@@ -1,5 +1,6 @@
 import QtQuick
 import Quickshell
+import Quickshell.Widgets
 import qs.Common
 import qs.Modules.Plugins
 import qs.Services
@@ -10,33 +11,41 @@ import qs.Widgets
 BasePill {
     id: root
 
-    readonly property bool inhibited: SessionService.idleInhibited || IdleService.externalInhibitActive || IdleService.windowInhibitActive
-    readonly property var inhibitors: {
-        const list = [];
-        if (SessionService.idleInhibited)
-            list.push({
-                "name": I18n.tr("Idle inhibitor"),
-                "detail": ""
-            });
-        for (const i of DMSService.screensaverInhibitors)
-            list.push({
-                "name": i.appName,
-                "detail": i.reason || ""
-            });
-        for (const w of IdleService.activeInhibitingWindows)
-            list.push({
-                "name": Paths.getAppName(w.appId, DesktopEntries.heuristicLookup(Paths.moddedAppId(w.appId))),
-                "detail": w.title
-            });
-        if (list.length === 0 && IdleService.windowInhibitActive)
-            list.push({
-                "name": I18n.tr("Unknown"),
-                "detail": ""
-            });
-        return list;
+    readonly property var activeInhibitors: IdleService.activeInhibitors
+    readonly property bool inhibited: activeInhibitors.length > 0
+    readonly property var iconInhibitors: activeInhibitors.filter(i => i.appId)
+    readonly property int maxPillIcons: 3
+    readonly property string inhibitorSummary: activeInhibitors.map(i => {
+        const detail = inhibitorDetail(i);
+        return detail ? inhibitorName(i) + " — " + detail : inhibitorName(i);
+    }).join("\n")
+
+    function inhibitorName(i) {
+        switch (i.kind) {
+        case "manual":
+            return I18n.tr("Idle inhibitor");
+        case "compositor":
+            return I18n.tr("Unknown");
+        default:
+            return Paths.getAppName(i.appId, DesktopEntries.heuristicLookup(Paths.moddedAppId(i.appId))) || i.name;
+        }
     }
-    readonly property string inhibitorLabel: inhibitors.length === 0 ? "--" : inhibitors[0].name + (inhibitors.length > 1 ? " +" + (inhibitors.length - 1) : "")
-    readonly property string inhibitorSummary: inhibitors.map(i => i.detail && i.detail !== i.name ? i.name + " — " + i.detail : i.name).join("\n")
+
+    function inhibitorDetail(i) {
+        const parts = [];
+        if (i.title)
+            parts.push(i.title);
+        if (i.workspace)
+            parts.push(I18n.tr("Workspace %1", "idle inhibitor menu: workspace of the inhibiting window").arg(i.workspace));
+        if (i.reason && i.reason !== i.title)
+            parts.push(i.reason);
+        return parts.join(" · ");
+    }
+
+    function inhibitorIcon(i) {
+        return i.appId ? Paths.getAppIcon(i.appId, DesktopEntries.heuristicLookup(Paths.moddedAppId(i.appId))) : "";
+    }
+
     readonly property var nextAction: IdleService.nextIdleAction
     readonly property double idleSince: IdleService.idleSince
     property double now: Date.now()
@@ -133,7 +142,7 @@ BasePill {
     }
 
     function showInhibitorTooltip() {
-        if (!root.inhibited || !root.inhibitorSummary || !root.parentScreen)
+        if (!root.inhibited || !root.inhibitorSummary || !root.parentScreen || inhibitorMenu.openState)
             return;
         tooltipLoader.active = true;
         const anchor = root.contextMenuAnchor();
@@ -146,6 +155,145 @@ BasePill {
     }
 
     onIsMouseHoveredChanged: isMouseHovered ? showInhibitorTooltip() : hideInhibitorTooltip()
+
+    function openInhibitorMenu() {
+        hideInhibitorTooltip();
+        inhibitorMenu.openFromBar(root.contextMenuAnchor());
+    }
+
+    DContextMenu {
+        id: inhibitorMenu
+
+        layerNamespace: "dms:idle-inhibitor-menu"
+        customContentWidth: Theme.fieldDefaultWidth * 1.5
+        customContent: Component {
+            Column {
+                width: inhibitorMenu.customContentWidth
+                spacing: Theme.groupedListGap
+
+                Repeater {
+                    // The manual row is always offered so the menu can also turn keep-awake on.
+                    model: [
+                        {
+                            "key": "manual",
+                            "kind": "manual",
+                            "active": SessionService.idleInhibited,
+                            "canIgnore": true,
+                            "ignoredByConfig": false
+                        }
+                    ].concat(IdleService.inhibitors.filter(i => i.kind !== "manual"))
+
+                    Rectangle {
+                        id: inhibitorRow
+                        required property var modelData
+                        readonly property bool focusable: !!modelData.address
+
+                        width: parent.width
+                        height: Math.max(Style.menuRowHeight, rowContent.implicitHeight + Theme.spacingS * 2)
+                        radius: Theme.cornerRadiusM
+                        color: focusable && rowMouse.containsMouse ? Theme.withAlpha(Theme.onSurface, Theme.stateLayerHover) : "transparent"
+
+                        MouseArea {
+                            id: rowMouse
+                            anchors.fill: parent
+                            hoverEnabled: true
+                            enabled: inhibitorRow.focusable
+                            cursorShape: Qt.PointingHandCursor
+                            onClicked: {
+                                CompositorService.focusWindow(inhibitorRow.modelData.address);
+                                inhibitorMenu.hide();
+                            }
+                        }
+
+                        Row {
+                            id: rowContent
+                            anchors.left: parent.left
+                            anchors.right: rowToggle.left
+                            anchors.leftMargin: Theme.spacingM
+                            anchors.rightMargin: Theme.spacingM
+                            anchors.verticalCenter: parent.verticalCenter
+                            spacing: Theme.spacingM
+
+                            Item {
+                                width: Style.menuItemIconSize
+                                height: width
+                                anchors.verticalCenter: parent.verticalCenter
+
+                                IconImage {
+                                    id: rowAppIcon
+                                    anchors.fill: parent
+                                    source: root.inhibitorIcon(inhibitorRow.modelData)
+                                    asynchronous: true
+                                    visible: status === Image.Ready
+                                }
+
+                                DIcon {
+                                    anchors.centerIn: parent
+                                    visible: !rowAppIcon.visible
+                                    size: parent.width
+                                    name: inhibitorRow.modelData.kind === "manual" ? "local_cafe" : inhibitorRow.modelData.kind === "compositor" ? "help" : "desktop_windows"
+                                    color: Theme.onSurfaceVariant
+                                }
+                            }
+
+                            Column {
+                                width: rowContent.width - Style.menuItemIconSize - rowContent.spacing
+                                anchors.verticalCenter: parent.verticalCenter
+
+                                StyledText {
+                                    width: parent.width
+                                    text: root.inhibitorName(inhibitorRow.modelData)
+                                    font.pixelSize: Theme.fontSizeSmall
+                                    font.weight: Theme.fontWeight
+                                    color: inhibitorRow.modelData.active ? Theme.onSurface : Theme.onSurfaceVariant
+                                    elide: Text.ElideRight
+                                }
+
+                                StyledText {
+                                    width: parent.width
+                                    visible: text !== ""
+                                    text: root.inhibitorDetail(inhibitorRow.modelData)
+                                    font.pixelSize: Theme.fontSizeXSmall
+                                    color: Theme.onSurfaceVariant
+                                    elide: Text.ElideRight
+                                }
+                            }
+                        }
+
+                        DToggle {
+                            id: rowToggle
+                            anchors.right: parent.right
+                            anchors.rightMargin: Theme.spacingM
+                            anchors.verticalCenter: parent.verticalCenter
+                            hideText: true
+                            checked: inhibitorRow.modelData.active
+                            enabled: inhibitorRow.modelData.canIgnore && !inhibitorRow.modelData.ignoredByConfig
+                            onToggled: checked => {
+                                if (inhibitorRow.modelData.kind === "manual")
+                                    checked ? SessionService.enableIdleInhibit() : SessionService.disableIdleInhibit();
+                                else
+                                    IdleService.setInhibitorIgnored(inhibitorRow.modelData.key, !checked);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        onOpenStateChanged: {
+            const screenName = root.parentScreen?.name;
+            if (!screenName)
+                return;
+            if (openState)
+                TrayMenuManager.registerMenu(screenName, inhibitorMenu.contextWindow);
+            else
+                TrayMenuManager.unregisterMenu(screenName);
+        }
+        Component.onDestruction: {
+            if (openState && root.parentScreen?.name)
+                TrayMenuManager.unregisterMenu(root.parentScreen.name);
+        }
+    }
     onInhibitedChanged: {
         if (!inhibited)
             hideInhibitorTooltip();
@@ -198,15 +346,25 @@ BasePill {
                 }
 
                 CountdownLabel {
-                    visible: !root.inhibited
+                    visible: root.iconInhibitors.length === 0
                     anchors.verticalCenter: parent.verticalCenter
                 }
 
+                Repeater {
+                    model: root.iconInhibitors.slice(0, root.maxPillIcons)
+
+                    IconImage {
+                        required property var modelData
+                        implicitSize: Theme.barIconSize(root.barThickness, -6, root.barConfig?.maximizeWidgetIcons, root.barConfig?.iconScale)
+                        source: root.inhibitorIcon(modelData)
+                        asynchronous: true
+                        anchors.verticalCenter: parent.verticalCenter
+                    }
+                }
+
                 StyledText {
-                    visible: root.inhibited
-                    text: root.inhibitorLabel
-                    width: Math.min(implicitWidth, root.barThickness * 4)
-                    elide: Text.ElideRight
+                    visible: root.iconInhibitors.length > root.maxPillIcons
+                    text: "+" + (root.iconInhibitors.length - root.maxPillIcons)
                     font.pixelSize: root.textPixelSize
                     color: root.contentColor
                     anchors.verticalCenter: parent.verticalCenter
@@ -215,8 +373,14 @@ BasePill {
         }
     }
 
+    // With nothing but keep-awake to manage, a click keeps toggling it directly.
     onClicked: {
+        if (IdleService.inhibitors.some(i => i.kind !== "manual")) {
+            openInhibitorMenu();
+            return;
+        }
         hideInhibitorTooltip();
         SessionService.toggleIdleInhibit();
     }
+    onRightClicked: openInhibitorMenu()
 }
