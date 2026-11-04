@@ -10,6 +10,26 @@ function option(config, key, defaults, fallback) {
     return config?.[key] === undefined ? (defaults?.[key] ?? fallback) : config[key];
 }
 
+// Logical pixels for a bar sized in millimeters or as a share of the screen it crosses; 0 keeps the pixel settings.
+function barTargetThickness(config, screen) {
+    if (!screen)
+        return 0;
+    switch (config?.barSizeMode) {
+    case "millimeters": {
+        // Qt derives this density from logical geometry, so it is already logical pixels per millimeter.
+        const density = screen.physicalPixelDensity;
+        return density > 0 && isFinite(density) ? (config.barSizeMillimeters ?? 10) * density : 0;
+    }
+    case "percent": {
+        const edge = edgeName(config.position ?? 0);
+        const span = edge === "left" || edge === "right" ? screen.width : screen.height;
+        return span > 0 ? span * (config.barSizePercent ?? 3) / 100 : 0;
+    }
+    default:
+        return 0;
+    }
+}
+
 function screenModelIndex(screen, screens) {
     if (!screen?.model)
         return -1;
@@ -38,10 +58,11 @@ function coversScreen(config, screen, screens, displayNameMode) {
     return preferences.includes("all") || screenMatches(screen, preferences, screens, displayNameMode) || ((config?.showOnLastDisplay ?? false) && screens.length === 1);
 }
 
-function islandMetrics(config, defaults) {
+function islandMetrics(config, defaults, screen) {
     const value = key => config?.[key] ?? defaults[key];
     const strip = Math.max(24, Math.min(128, value("islandReserveThickness")));
-    const compact = Math.max(24, Math.min(72, value("islandCompactThickness")));
+    const target = Math.round(barTargetThickness(config, screen));
+    const compact = Math.max(24, Math.min(72, target || value("islandCompactThickness")));
     const gap = value("islandNotch") ? 0 : Math.max(0, Math.min(48, value("islandOuterGap")));
     const thickness = Math.max(strip, gap + compact);
     // The default reservation follows the pill itself, so windows stop right under it at any pill size;
@@ -54,12 +75,12 @@ function islandMetrics(config, defaults) {
     };
 }
 
-function islandThickness(config, defaults) {
-    return islandMetrics(config, defaults).thickness;
+function islandThickness(config, defaults, screen) {
+    return islandMetrics(config, defaults, screen).thickness;
 }
 
-function islandReserve(config, defaults) {
-    return islandMetrics(config, defaults).reserve;
+function islandReserve(config, defaults, screen) {
+    return islandMetrics(config, defaults, screen).reserve;
 }
 
 function isIsland(config) {
