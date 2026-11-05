@@ -197,6 +197,19 @@ Item {
                         }
 
                         DActionButton {
+                            readonly property bool pinned: widgetRow.modelData.showWhenCollapsed === true
+                            iconName: "push_pin"
+                            iconFilled: pinned
+                            iconColor: pinned ? Theme.primary : Theme.surfaceVariantText
+                            visible: dock.config?.autoHideStyle === "peek"
+                            tooltipText: I18n.tr("Show when collapsed", "dock widget toggle: keep this widget on a collapsed peek dock")
+                            Accessible.name: tooltipText
+                            onClicked: SettingsData.updateDockWidget(dock.selectedDockId, widgetRow.modelData.id, {
+                                showWhenCollapsed: !pinned
+                            })
+                        }
+
+                        DActionButton {
                             iconName: widgetRow.shown ? "visibility" : "visibility_off"
                             Accessible.name: widgetRow.shown ? I18n.tr("Hide") : I18n.tr("Show")
                             onClicked: {
