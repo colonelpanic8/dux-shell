@@ -527,6 +527,8 @@ Singleton {
                 if (event.name === "activewindow" || event.name === "activewindowv2")
                     root.workspaceStateChanged();
             }
+            if (event.name === "urgent")
+                root.workspaceStateChanged();
         }
     }
     Connections {
@@ -2005,6 +2007,19 @@ Singleton {
             return loadedUrgent;
         default:
             return record?.urgent === true;
+        }
+    }
+
+    function windowUrgent(window) {
+        switch (compositor) {
+        case "niri":
+            return window?.is_urgent === true;
+        case "hyprland":
+            return WindowModel.hyprlandToplevelFor(Array.from(Hyprland.toplevels?.values || []), window)?.urgent === true;
+        case "umbriel":
+            return window?.urgent === true;
+        default:
+            return false;
         }
     }
 
