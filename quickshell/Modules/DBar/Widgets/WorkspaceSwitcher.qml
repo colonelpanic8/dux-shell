@@ -165,7 +165,7 @@ BasePill {
     }
 
     function switchToWorkspaceByModelData(entry) {
-        if ((entry?.ws ?? entry)?.minimizedBucket)
+        if ((entry?.ws ?? entry)?.bucket)
             return;
         workspaces.switchTo(entry);
     }
@@ -420,7 +420,7 @@ BasePill {
                         return custom;
                     return {
                         "type": "icon",
-                        "value": "inbox"
+                        "value": record.icon ?? "inbox"
                     };
                 }
                 readonly property bool loadedHasIcon: loadedIconData !== null

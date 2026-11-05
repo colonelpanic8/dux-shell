@@ -2089,7 +2089,7 @@ Singleton {
         switch (compositor) {
         case "hyprland": {
             const window = _hyprlandToplevelFor(windowId);
-            if (["minimized", "special:minimized"].includes(window?.workspace?.name))
+            if (WorkspaceModel.hyprlandBucketOf(window?.workspace?.name ?? ""))
                 HyprlandService.moveToWorkspace(Hyprland.focusedWorkspace?.id || 1, windowId, false);
             HyprlandService.focusWindow(windowId);
             return true;
