@@ -199,6 +199,24 @@ test("hyprland specials are opt-in and collapse into one minimized bucket on the
     assert.deepEqual(pick(model.hyprlandWindowsOnWorkspace(raw.windows, shown[2], raw.toplevels), "address"), ["0xd"]);
 });
 
+test("hyprland hidden scratchpads collect in their own bucket on every monitor", () => {
+    const raw = hyprland("twoScreens");
+    const dp1 = raw.monitors.find(m => m.name === "DP-1");
+    const minimized = { id: 0, name: "special:minimized", monitor: dp1, active: false, urgent: false };
+    const scratch = { id: 0, name: "special:scratch-codex", monitor: dp1, active: false, urgent: false };
+    const minWin = { address: "0xd" };
+    const scratchWin = { address: "0xe" };
+    raw.workspaces.push(minimized, scratch);
+    raw.toplevels.push({ workspace: minimized, wayland: minWin }, { workspace: scratch, wayland: scratchWin });
+    raw.windows.push(minWin, scratchWin);
+    const shown = model.hyprlandWorkspacesForScreen(raw, "DP-1", false, false, 0, true);
+    assert.deepEqual(pick(shown, "name"), ["1", "3", "M", "S"]);
+    assert.deepEqual(pick(model.hyprlandWindowsOnWorkspace(raw.windows, shown[3], raw.toplevels), "address"), ["0xe"]);
+    assert.deepEqual(pick(model.hyprlandWorkspacesForScreen(raw, "HDMI-A-1", false, false, 0, true), "name"), ["2", "4", "chat", "S"]);
+    assert.equal(model.hyprlandBucketOf("special:NSP"), "scratchpad");
+    assert.equal(model.hyprlandBucketOf("special:scratch"), "");
+});
+
 test("hyprland active workspace is the special overlaid on the monitor", () => {
     const raw = hyprland("twoScreens");
     raw.visibleSpecials = { "HDMI-A-1": "special:special" };
