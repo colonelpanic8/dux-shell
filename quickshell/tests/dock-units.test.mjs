@@ -132,3 +132,20 @@ test("aligned bodies keep their gaps and offset from the aligned end", () => {
     assert.equal(config.alignedStart("end", 10, 1000, 200, 6, 4), 786);
     assert.equal(config.alignedStart("center", 10, 1000, 200, 6, 4), 401);
 });
+
+test("peek keys are bounded and only widgets shown when collapsed carry the flag", () => {
+    const [dock] = plain(config.normalize([{ id: "d", autoHideStyle: "fade", peekOpacity: 3, revealDelay: -1, hideDelay: 9999, widgets: [{ id: "t", widgetId: "systemTray", showWhenCollapsed: "yes" }, { id: "a", widgetId: "appsDock", showWhenCollapsed: true }] }]));
+    assert.deepEqual([dock.autoHideStyle, dock.peekOpacity, dock.revealDelay, dock.hideDelay], ["slide", 1, 0, 5000]);
+    assert.deepEqual(dock.widgets.map(widget => [widget.id, "showWhenCollapsed" in widget]), [["t", false], ["d_launcher", false], ["a", true], ["d_trash", false]]);
+    const items = config.surfaceItems(dock.widgets, apps, []);
+    assert.deepEqual(plain(items.filter(item => item.showWhenCollapsed).map(item => item.id)), ["a:pinned_a", "a:pinned_b", "a:separator_ungrouped", "a:niri:4"]);
+});
+
+test("an auto-hidden dock collapses only in peek style with something to show", () => {
+    const dock = (style, widgets) => ({ autoHideStyle: style, widgets });
+    const tray = { widgetId: "systemTray", showWhenCollapsed: true };
+    assert.equal(config.visibility(false, dock("peek", [tray])), "expanded");
+    assert.equal(config.visibility(true, dock("peek", [tray])), "collapsed");
+    assert.equal(config.visibility(true, dock("slide", [tray])), "hidden");
+    assert.equal(config.visibility(true, dock("peek", [{ ...tray, enabled: false }, { widgetId: "clock" }])), "hidden");
+});

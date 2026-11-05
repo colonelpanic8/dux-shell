@@ -17,7 +17,8 @@ QtObject {
     readonly property var hyprlandOverviewLoader: host.hyprlandOverviewLoader ?? null
     readonly property int notificationCount: host.notificationCount ?? 0
     readonly property bool revealed: host.reveal ?? host.isBarVisible ?? true
-    readonly property bool live: revealed && !(IdleService.monitorsOff ?? false)
+    readonly property bool collapsed: host.collapsed ?? false
+    readonly property bool live: (revealed || collapsed) && !(IdleService.monitorsOff ?? false)
     readonly property bool editMode: host.editMode ?? false
     property real availableSize: isVertical ? (host?.height ?? 0) : (host?.width ?? 0)
     function screenPoint(item, x, y) {
