@@ -99,6 +99,10 @@ QtObject {
             return false;
         return host.openExpansion(item);
     }
+    function expandCollapsed() {
+        if (kind === "dock" && host.expandCollapsed)
+            host.expandCollapsed();
+    }
     function dismissExpansion() {
         if (kind === "dock" && host.closeExpansion)
             host.closeExpansion();
