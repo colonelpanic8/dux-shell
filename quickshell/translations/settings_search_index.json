@@ -5095,6 +5095,24 @@
     "icon": "mouse"
   },
   {
+    "section": "dockAlignOffset",
+    "label": "Offset",
+    "tabIndex": 5,
+    "category": "General",
+    "keywords": [
+      "alignment",
+      "corner",
+      "dock",
+      "general",
+      "launcher bar",
+      "offset",
+      "panel",
+      "position",
+      "taskbar"
+    ],
+    "parentLabel": "Dock"
+  },
+  {
     "section": "dockEditOnRightClick",
     "label": "Right-click empty space to edit",
     "tabIndex": 5,

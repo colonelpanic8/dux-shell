@@ -115,3 +115,20 @@ test("settings reorder follows the saved dock order and pins travel with the wid
         assert.deepEqual(plain(config.widgetOrder(result.widgets, result.order)), result.widgets.map(widget => widget.id));
     }
 });
+
+test("taskbarAlign migrates to align for taskbars only and align offsets are bounded", () => {
+    const pick = dock => [dock.align, dock.alignOffset, "taskbarAlign" in dock];
+    const docks = plain(config.normalize([
+        { id: "bar", mode: "taskbar", taskbarAlign: "end" },
+        { id: "compact", taskbarAlign: "end", alignOffset: -5 },
+        { id: "set", mode: "taskbar", taskbarAlign: "end", align: "start", alignOffset: 9000 },
+        { id: "junk", align: "middle", alignOffset: "12.6" }
+    ]));
+    assert.deepEqual(docks.map(pick), [["end", 0, false], ["center", 0, false], ["start", 4096, false], ["center", 13, false]]);
+});
+
+test("aligned bodies keep their gaps and offset from the aligned end", () => {
+    assert.equal(config.alignedStart("start", 10, 1000, 200, 6, 4), 16);
+    assert.equal(config.alignedStart("end", 10, 1000, 200, 6, 4), 786);
+    assert.equal(config.alignedStart("center", 10, 1000, 200, 6, 4), 401);
+});

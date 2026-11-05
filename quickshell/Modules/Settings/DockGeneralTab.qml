@@ -57,18 +57,31 @@ Item {
 
             SettingsButtonGroupRow {
                 resetStore: dock
-                resetKeys: ["taskbarAlign"]
+                resetKeys: ["align"]
                 readonly property var alignments: ["start", "center", "end"]
 
                 text: I18n.tr("Alignment", "row label, where taskbar dock items align")
-                enabled: dock.config?.mode === "taskbar"
                 model: dock.isVertical ? [I18n.tr("Top"), I18n.tr("Center", "noun, taskbar dock alignment option between start and end"), I18n.tr("Bottom")] : [I18n.tr("Left"), I18n.tr("Center"), I18n.tr("Right")]
-                currentIndex: Math.max(0, alignments.indexOf(dock.config?.taskbarAlign ?? "center"))
+                currentIndex: Math.max(0, alignments.indexOf(dock.config?.align ?? "center"))
                 onSelectionChanged: (index, selected) => {
                     if (!selected)
                         return;
-                    dock.setOption("taskbarAlign", alignments[index]);
+                    dock.setOption("align", alignments[index]);
                 }
+            }
+
+            SettingsSliderRow {
+                settingKey: "dockAlignOffset"
+                tags: ["dock", "alignment", "offset", "corner", "position"]
+                resetStore: dock
+                resetKeys: ["alignOffset"]
+                text: I18n.tr("Offset", "dock settings: distance from the aligned screen end")
+                visible: dock.config?.mode !== "taskbar" && dock.config?.align !== "center"
+                unit: "px"
+                minimum: 0
+                maximum: 1000
+                value: dock.config?.alignOffset ?? 0
+                onSliderDragFinished: finalValue => dock.setOption("alignOffset", finalValue)
             }
         }
 

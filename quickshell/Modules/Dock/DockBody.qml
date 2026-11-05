@@ -163,6 +163,9 @@ FocusScope {
             return 0;
         return Math.max(config.mode === "taskbar" ? 0 : dockGeometry.frameInset, SettingsData.taskbarInsetForEdge(screen, isVertical ? "bottom" : "right"));
     }
+    // A taskbar spans its edge, so `align` places its content instead of its body.
+    readonly property string bodyAlign: config.mode === "taskbar" ? "center" : config.align
+    readonly property real alongMargin: config.mode === "taskbar" ? 0 : dockGeometry.effectiveMargin
     readonly property real availablePrimary: Math.max(0, (isVertical ? height : width) - ((config.mode === "taskbar" ? 0 : config.margin) + (usesConnectedFrameChrome ? 0 : borderThickness)) * 2 - primaryStartInset - primaryEndInset)
     readonly property var shapeTarget: ({
             width: dockBackground.targetWidth,
@@ -684,8 +687,9 @@ FocusScope {
                 const w = dockBackground.width;
                 return Math.min(w + dock.config.spacing * 2, dock.availablePrimary);
             }
-            x: !dock.isVertical ? Math.round((parent.width - width + dock.primaryStartInset - dock.primaryEndInset) / 2) : (dock.config.position === SettingsData.Position.Right ? parent.width - width : 0)
-            y: dock.isVertical ? Math.round((parent.height - height + dock.primaryStartInset - dock.primaryEndInset) / 2) : (dock.config.position === SettingsData.Position.Bottom ? parent.height - height : 0)
+            readonly property real along: Math.max(0, Math.min((dock.isVertical ? parent.height - height : parent.width - width), DockConfig.alignedStart(dock.bodyAlign, dock.config.alignOffset, dock.isVertical ? parent.height : parent.width, dock.isVertical ? height : width, dock.primaryStartInset + dock.alongMargin - dock.config.spacing, dock.primaryEndInset + dock.alongMargin - dock.config.spacing)))
+            x: !dock.isVertical ? along : (dock.config.position === SettingsData.Position.Right ? parent.width - width : 0)
+            y: dock.isVertical ? along : (dock.config.position === SettingsData.Position.Bottom ? parent.height - height : 0)
             hoverEnabled: true
             acceptedButtons: dock.config.editOnRightClick ? Qt.RightButton : Qt.NoButton
             onClicked: dock.editMode = !dock.editMode
@@ -765,8 +769,14 @@ FocusScope {
                     id: dockBackground
                     objectName: "dockBackground"
                     visible: dock.hasApps
-                    x: !dock.isVertical ? Math.round((parent.width - width + dock.primaryStartInset - dock.primaryEndInset) / 2) : (dock.config.position === SettingsData.Position.Right ? parent.width - width - dockGeometry.bodyEdgeMargin : dockGeometry.bodyEdgeMargin)
-                    y: dock.isVertical ? Math.round((parent.height - height + dock.primaryStartInset - dock.primaryEndInset) / 2) : (dock.config.position === SettingsData.Position.Bottom ? parent.height - height - dockGeometry.bodyEdgeMargin : dockGeometry.bodyEdgeMargin)
+                    readonly property real along: {
+                        if (dock.bodyAlign === "center")
+                            return Math.round(((dock.isVertical ? parent.height - height : parent.width - width) + dock.primaryStartInset - dock.primaryEndInset) / 2);
+                        const extent = dock.isVertical ? dock.height : dock.width;
+                        return DockConfig.alignedStart(dock.bodyAlign, dock.config.alignOffset, extent, dock.isVertical ? height : width, dock.primaryStartInset + dock.alongMargin, dock.primaryEndInset + dock.alongMargin) - dockMouseArea.along;
+                    }
+                    x: !dock.isVertical ? along : (dock.config.position === SettingsData.Position.Right ? parent.width - width - dockGeometry.bodyEdgeMargin : dockGeometry.bodyEdgeMargin)
+                    y: dock.isVertical ? along : (dock.config.position === SettingsData.Position.Bottom ? parent.height - height - dockGeometry.bodyEdgeMargin : dockGeometry.bodyEdgeMargin)
 
                     readonly property real targetPrimary: dock.config.mode === "taskbar" ? dock.availablePrimary : Math.min(widgetStrip.restLength + dock.config.spacing * 2, dock.availablePrimary)
                     readonly property real targetWidth: dock.isVertical ? dock.effectiveBarThickness + dock.expansionExtent : targetPrimary
@@ -863,7 +873,7 @@ FocusScope {
                     availableSize: dock.isVertical ? height : width
                     expansionLimit: Math.max(0, dock.availablePrimary - widgetStrip.restLength - dock.config.spacing * 2)
                     fillAvailable: dock.config.mode === "taskbar"
-                    align: dock.config.mode === "taskbar" ? dock.config.taskbarAlign : "start"
+                    align: dock.config.mode === "taskbar" ? dock.config.align : "start"
                     onReorderRequested: (from, to) => dock.reorderUnits(from, to)
                     onRemoveRequested: instanceId => dock.removeWidget(instanceId)
                 }
