@@ -3,6 +3,7 @@
 var EDGES = ["top", "bottom", "left", "right"];
 var MAGNIFICATION_PROFILES = ["parabolic", "cosine", "gaussian"];
 var DEFAULT_MAGNIFICATION_PROFILE = "parabolic";
+var ALIGNMENTS = ["start", "center", "end"];
 
 function clone(value) {
     return JSON.parse(JSON.stringify(value));
@@ -18,7 +19,8 @@ function create(id, name) {
         position: 1,
         mode: "compact",
         middleClickAction: "close",
-        taskbarAlign: "center",
+        align: "center",
+        alignOffset: 0,
         widgetExpansion: "popout",
         iconSize: 42,
         spacing: 8,
@@ -101,7 +103,10 @@ function normalize(configs, presets) {
         result.position = Number.isInteger(config.position) && config.position >= 0 && config.position < 4 ? config.position : 1;
         result.mode = config.mode === "taskbar" ? "taskbar" : "compact";
         result.middleClickAction = ["close", "launch"].includes(config.middleClickAction) ? config.middleClickAction : defaults.middleClickAction;
-        result.taskbarAlign = ["start", "center", "end"].includes(config.taskbarAlign) ? config.taskbarAlign : "center";
+        // Compact docks always sat centered, so only a taskbar keeps its old content alignment.
+        const legacyAlign = result.mode === "taskbar" ? config.taskbarAlign : undefined;
+        result.align = ALIGNMENTS.includes(config.align) ? config.align : ALIGNMENTS.includes(legacyAlign) ? legacyAlign : "center";
+        result.alignOffset = Math.round(bounded(result.alignOffset, 0, 0, 4096));
         result.widgetExpansion = config.widgetExpansion === "inline" ? "inline" : "popout";
         result.iconSize = bounded(result.iconSize, defaults.iconSize, 16, 96);
         result.itemSpacing = bounded(result.itemSpacing, defaults.itemSpacing, 0, 32);
@@ -137,8 +142,18 @@ function normalize(configs, presets) {
         result.order = Array.isArray(config.order) ? [...new Set(config.order.filter(id => typeof id === "string"))] : [];
         delete result.launcherPosition;
         delete result.thickness;
+        delete result.taskbarAlign;
         return result;
     });
+}
+
+// Start of a body `length` long on an edge `extent` long, `offset` away from the aligned end.
+function alignedStart(align, offset, extent, length, startGap, endGap) {
+    if (align === "start")
+        return startGap + offset;
+    if (align === "end")
+        return extent - endGap - length - offset;
+    return Math.round((extent - length + startGap - endGap) / 2);
 }
 
 function matches(config, screen) {
