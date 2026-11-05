@@ -11187,6 +11187,14 @@
     "optionFile": "SystemMonitorOptions.qml"
   },
   {
+    "section": "barWidgetOption:SystemTrayOptions.qml:9",
+    "label": "Show when collapsed",
+    "tabIndex": 22,
+    "keywords": [],
+    "runtimeType": "barWidgetOption",
+    "optionFile": "SystemTrayOptions.qml"
+  },
+  {
     "section": "barWidgetOption:SystemTrayOptions.qml:2",
     "label": "Single-line popup",
     "tabIndex": 22,
