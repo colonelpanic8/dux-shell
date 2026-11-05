@@ -1,4 +1,6 @@
+pragma ComponentBehavior: Bound
 import QtQuick
+import Quickshell.Services.SystemTray
 import qs.Common
 import qs.Modules.Settings.Widgets
 
@@ -10,6 +12,20 @@ Column {
     readonly property bool inlineExpansion: page.value("trayUseInlineExpansion")
     readonly property bool autoOverflow: page.value("trayAutoOverflow")
     readonly property bool trayTinted: ["primary", "secondary"].includes(SettingsData.systemTrayIconTintMode || "none")
+    readonly property var pinnedKeys: root.page.value("trayPinnedItems") ?? []
+    // Live items in tray order, then pinned keys whose app is not running so they can still be unpinned.
+    readonly property var pinRows: {
+        const live = TrayMenuManager.filterEnvHidden(SystemTray.items.values);
+        const rows = TrayMenuManager.sortByPreferredOrder(live, SessionData.trayItemOrder).map(item => ({
+                    key: TrayMenuManager.getTrayItemKey(item, live),
+                    title: item.tooltipTitle || item.title || item.id
+                }));
+        const keys = rows.map(row => row.key);
+        return rows.concat(pinnedKeys.filter(key => !keys.includes(key)).map(key => ({
+                    key,
+                    title: key
+                })));
+    }
 
     width: parent?.width ?? 0
     spacing: Theme.spacingL
@@ -97,6 +113,28 @@ Column {
             minimum: 0
             maximum: 200
             onSliderDragFinished: finalValue => SettingsData.set("systemTrayIconTintStrength", finalValue)
+        }
+    }
+
+    SettingsCard {
+        settingKey: "barWidgetTrayPinned"
+        tags: ["tray", "pin", "pinned", "collapsed", "peek", "dock"]
+        title: I18n.tr("Show when collapsed", "dock widget toggle: keep this widget on a collapsed peek dock")
+        iconName: "push_pin"
+        visible: root.page.dockHosted && root.pinRows.length > 0
+
+        Repeater {
+            model: root.pinRows
+
+            delegate: SettingsToggleRow {
+                id: pinRow
+                required property var modelData
+
+                text: pinRow.modelData.title
+                description: pinRow.modelData.title === pinRow.modelData.key ? "" : pinRow.modelData.key
+                checked: root.pinnedKeys.includes(pinRow.modelData.key)
+                onToggled: checked => root.page.set("trayPinnedItems", checked ? root.pinnedKeys.concat([pinRow.modelData.key]) : root.pinnedKeys.filter(key => key !== pinRow.modelData.key))
+            }
         }
     }
 }

@@ -28,6 +28,19 @@ BasePill {
     property int configuredMaxVisibleItems: SettingsData.widgetOption("systemTray", widgetData, "trayMaxVisibleItems")
     property real configuredIconSpacing: Math.max(0, SettingsData.widgetOption("systemTray", widgetData, "trayIconSpacing"))
     property real sectionAvailablePrimarySize: 0
+    // Only peek docks collapse. A collapsed tray keeps its pinned items plus an arrow that expands the dock.
+    readonly property bool collapsible: barConfig?.autoHideStyle === "peek"
+    property bool collapsed: false
+    signal expandRequested
+    readonly property var pinnedTrayKeys: {
+        const keys = SettingsData.widgetOption("systemTray", widgetData, "trayPinnedItems");
+        return Array.isArray(keys) ? keys : [];
+    }
+    readonly property bool collapsedArrowShown: collapsed && (hiddenBarItems.length > 0 || mainBarItems.some(entry => !pinnedTrayKeys.includes(entry.key)))
+    // The dock grows away from its aligned end, so the arrow sits on that side and points that way.
+    readonly property bool collapsedArrowLeads: barConfig?.align === "end"
+    readonly property string collapsedArrowIcon: OverflowLayout.expanderIcon(isVerticalOrientation ? (collapsedArrowLeads ? "bottom" : "top") : (collapsedArrowLeads ? "right" : "left"), false)
+    readonly property bool interactionActive: menuOpen || trayMenuState.showMenu
     readonly property var hiddenTrayIds: TrayMenuManager.envHiddenTrayIds
     readonly property var allTrayItems: TrayMenuManager.filterEnvHidden(SystemTray.items.values)
     function getTrayItemKey(item) {
@@ -310,7 +323,7 @@ BasePill {
     property int popupDraggedIndex: -1
     property int popupDropTargetIndex: -1
     property bool suppressShiftAnimation: false
-    readonly property bool hasHiddenItems: hiddenBarItems.length > 0
+    readonly property bool hasHiddenItems: !collapsed && hiddenBarItems.length > 0
     readonly property bool inlineExpanded: hasHiddenItems && !useOverflowPopup && menuOpen
     visible: allTrayItems.length > 0
     opacity: allTrayItems.length > 0 ? 1 : 0
@@ -492,6 +505,11 @@ BasePill {
             spacing: root.configuredIconSpacing
             layoutDirection: root.reverseInlineHorizontal ? Qt.RightToLeft : Qt.LeftToRight
 
+            Loader {
+                active: root.collapsible && root.collapsedArrowLeads !== root.reverseInlineHorizontal
+                sourceComponent: collapsedArrowComponent
+            }
+
             Repeater {
                 model: ScriptModel {
                     values: root.displayedMainBarItems
@@ -557,6 +575,70 @@ BasePill {
                 }
 
                 delegate: inlineExpandedTrayItemDelegate
+            }
+
+            Loader {
+                active: root.collapsible && root.collapsedArrowLeads === root.reverseInlineHorizontal
+                sourceComponent: collapsedArrowComponent
+            }
+        }
+    }
+
+    Component {
+        id: collapsedArrowComponent
+
+        Item {
+            property real extent: root.collapsedArrowShown ? root.trayItemSize : 0
+            width: root.isVerticalOrientation ? root.barThickness : extent
+            height: root.isVerticalOrientation ? extent : root.barThickness
+            opacity: root.collapsedArrowShown ? 1 : 0
+            visible: extent > 0
+
+            Behavior on extent {
+                enabled: !SettingsData.reduceMotion
+                NumberAnimation {
+                    duration: Theme.shortDuration
+                    easing.type: Theme.standardEasing
+                }
+            }
+
+            Behavior on opacity {
+                enabled: !SettingsData.reduceMotion
+                NumberAnimation {
+                    duration: Theme.shortDuration
+                    easing.type: Theme.standardEasing
+                }
+            }
+
+            BarPillSurface {
+                id: collapsedArrowButton
+                width: root.trayItemSize
+                height: root.trayItemSize
+                anchors.centerIn: parent
+                style: BarMetrics.widgetStyle(root.barConfig)
+                pressed: collapsedArrowArea.pressed
+                color: Theme.withAlpha(Theme.onSurface, collapsedArrowArea.pressed ? Theme.stateLayerPressed : collapsedArrowArea.containsMouse ? Theme.stateLayerHover : 0)
+
+                DIcon {
+                    anchors.centerIn: parent
+                    name: root.collapsedArrowIcon
+                    size: root.trayIconSize
+                    color: Theme.widgetTextColor
+                }
+
+                DRipple {
+                    id: collapsedArrowRipple
+                    cornerRadius: collapsedArrowButton.radius
+                }
+
+                MouseArea {
+                    id: collapsedArrowArea
+                    anchors.fill: parent
+                    hoverEnabled: true
+                    cursorShape: Qt.PointingHandCursor
+                    onPressed: mouse => collapsedArrowRipple.trigger(mouse.x, mouse.y)
+                    onClicked: root.expandRequested()
+                }
             }
         }
     }
@@ -699,6 +781,26 @@ BasePill {
                 }
             }
 
+            readonly property bool collapsedAway: root.collapsed && !root.pinnedTrayKeys.includes(delegateRoot.itemKey)
+            states: State {
+                when: delegateRoot.collapsedAway
+                PropertyChanges {
+                    target: delegateRoot
+                    width: root.isVerticalOrientation ? root.barThickness : 0
+                    height: root.isVerticalOrientation ? 0 : root.barThickness
+                    opacity: 0
+                    scale: 0.5
+                }
+            }
+            transitions: Transition {
+                enabled: !SettingsData.reduceMotion
+                NumberAnimation {
+                    properties: "width,height,opacity,scale"
+                    duration: Theme.shortDuration
+                    easing.type: Theme.standardEasing
+                }
+            }
+
             readonly property int groupCount: root.displayedMainBarItems.length
             readonly property bool reversedRow: !root.isVerticalOrientation && root.reverseInlineHorizontal
             readonly property bool atStart: reversedRow ? index === groupCount - 1 : index === 0
@@ -820,6 +922,11 @@ BasePill {
         Column {
             spacing: root.configuredIconSpacing
 
+            Loader {
+                active: root.collapsible && root.collapsedArrowLeads
+                sourceComponent: collapsedArrowComponent
+            }
+
             // Column lacks layoutDirection, so we use four repeaters with mutually exclusive models to control whether main items or expanded items appear above/ below the toggle button.
             // When reverseInlineVertical is true the first and third repeaters are empty and the second and fourth are active, and vice-versa.
             // Because items are swapped between repeaters rather than reversed within a single list, vertical drag-and-drop indices don't need remapping (unlike the horizontal RightToLeft case).
@@ -902,6 +1009,11 @@ BasePill {
                     objectProp: "key"
                 }
                 delegate: mainTrayItemDelegate
+            }
+
+            Loader {
+                active: root.collapsible && !root.collapsedArrowLeads
+                sourceComponent: collapsedArrowComponent
             }
         }
     }

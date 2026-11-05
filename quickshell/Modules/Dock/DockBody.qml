@@ -391,6 +391,11 @@ FocusScope {
     }
 
     property bool pointerRevealed: false
+    // A collapsed widget's expand request (the tray arrow) skips the reveal delay for the hovering pointer.
+    function expandCollapsed() {
+        revealWait.stop();
+        pointerRevealed = true;
+    }
 
     Timer {
         id: revealWait
