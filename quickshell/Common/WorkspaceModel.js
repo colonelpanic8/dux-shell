@@ -104,6 +104,15 @@ function hyprlandSpecialName(name) {
     return name === "special" || name.startsWith("special:");
 }
 
+// dotfiles Hyprland config parks hidden scratchpads on "scratch-<app>", or NSP for unnamed ones
+function hyprlandBucketOf(name) {
+    if (name === "minimized" || name === "special:minimized")
+        return "minimized";
+    if (name.startsWith("special:scratch-") || name === "special:NSP")
+        return "scratchpad";
+    return "";
+}
+
 function hyprlandSpecial(ws) {
     return !(ws.id > 0) && hyprlandSpecialName(ws.name ?? "");
 }
@@ -248,6 +257,8 @@ function hyprlandSpecialDisplayName(name) {
 
 // Hyprland >= 0.56 reports every special workspace with a null id, so specials only match by name
 function hyprlandWorkspaceMatches(ws, record) {
+    if (record.bucket)
+        return !!ws && hyprlandBucketOf(ws.name ?? "") === record.bucket && (!record.output || ws.monitor?.name === record.output);
     if (record.special !== true)
         return !!ws && hyprlandKey(ws) === hyprlandKey(record);
     const name = ws?.name ?? "";
@@ -292,7 +303,12 @@ function hyprlandWorkspacesForScreen(raw, screenName, followFocus, occupiedOnly,
     const regular = hyprlandPersistentWorkspaces(raw, hyprlandListedWorkspaces(raw, screenName, followFocus, occupiedOnly), screenName, followFocus, minCount);
     if (!showSpecial)
         return regular;
-    return regular.concat(hyprlandSpecialWorkspaces(raw, screenName, followFocus, occupiedOnly));
+    // scratchpads toggle onto whichever monitor is focused, so their bucket is on every bar
+    const buckets = [
+        {bucket: "minimized", name: "M", icon: "inbox", output: followFocus ? "" : screenName || ""},
+        {bucket: "scratchpad", name: "S", icon: "layers", output: ""}
+    ].map(b => ({id: "dotfiles-" + b.bucket, idx: null, name: b.name, output: b.output, active: false, placeholder: false, special: true, bucket: b.bucket, icon: b.icon}));
+    return regular.concat(buckets.filter(b => raw.toplevels.some(tl => hyprlandWorkspaceMatches(tl.workspace, b))));
 }
 
 function hyprlandScrollWorkspaces(raw, screenName, followFocus) {

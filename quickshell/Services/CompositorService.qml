@@ -2207,9 +2207,13 @@ Singleton {
         case "aqueous":
             AqueousService.command("window.activate", windowId);
             return true;
-        case "hyprland":
+        case "hyprland": {
+            const window = _hyprlandToplevelFor(windowId);
+            if (WorkspaceModel.hyprlandBucketOf(window?.workspace?.name ?? ""))
+                HyprlandService.moveToWorkspace(Hyprland.focusedWorkspace?.id || 1, windowId, false);
             HyprlandService.focusWindow(windowId);
             return true;
+        }
         case "niri":
             NiriService.focusWindow(windowId);
             return true;
