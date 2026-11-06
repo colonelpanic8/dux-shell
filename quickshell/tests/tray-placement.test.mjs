@@ -15,9 +15,9 @@ test("stored placement wins, then the configured default, then the bar", () => {
     assert.equal(placement.normalize("corner", "elsewhere"), "bar");
 });
 
-test("collapsing follows the stored choice, then the configured default, which is on", () => {
-    assert.deepEqual([placement.collapseEnabled(false, true), placement.collapseEnabled(true, false)], [false, true]);
-    assert.deepEqual([placement.collapseEnabled(null, false), placement.collapseEnabled(null, true), placement.collapseEnabled(null, undefined)], [false, true, true]);
+test("collapsing and expanding on hover follow the stored choice, then the configured default, which is on", () => {
+    assert.deepEqual([placement.sessionSwitch(false, true), placement.sessionSwitch(true, false)], [false, true]);
+    assert.deepEqual([placement.sessionSwitch(null, false), placement.sessionSwitch(null, true), placement.sessionSwitch(null, undefined)], [false, true, true]);
 });
 
 const plain = value => JSON.parse(JSON.stringify(value));

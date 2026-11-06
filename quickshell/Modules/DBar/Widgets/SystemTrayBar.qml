@@ -55,7 +55,6 @@ BasePill {
     overlayAlign: innerEndLeads ? 1 : 0
     // A translucent fill would show the covered neighbours through the overlay.
     fillColor: overlaying ? Theme.withAlpha(Theme.widgetBaseBackgroundColor, 1) : defaultFillColor
-    readonly property string barExpandOn: SettingsData.widgetOption("systemTray", widgetData, "trayExpandOn")
     property bool contentHovered: false
     readonly property bool barTrayHovered: isMouseHovered || contentHovered
     readonly property bool barHeld: barTrayHovered || interactionActive
@@ -65,16 +64,12 @@ BasePill {
         else if (barExpanded)
             barCollapseTimer.restart();
     }
-    onBarTrayHoveredChanged: {
-        if (barTrayHovered && collapsesInBar && barExpandOn === "trayHover")
-            expandInBar();
-    }
     onExpandRequested: {
         if (collapsesInBar)
             expandInBar();
     }
     onExpanderHovered: hovered => {
-        if (hovered && collapsesInBar && barExpandOn === "arrowHover")
+        if (hovered && collapsesInBar && TrayPlacementService.expandOnHover)
             expandInBar();
     }
     function expandInBar() {
@@ -712,6 +707,13 @@ BasePill {
                     text: I18n.tr("Collapse automatically", "tray options menu check item: whether the tray collapses to its pinned icons and an expand arrow"),
                     hidden: !root.collapsible,
                     action: () => TrayPlacementService.toggleCollapse()
+                },
+                {
+                    type: "item",
+                    icon: TrayPlacementService.expandOnHover ? "check_box" : "check_box_outline_blank",
+                    text: I18n.tr("Expand on hover", "tray options menu check item: whether hovering the collapsed tray's arrow expands it, instead of only clicking"),
+                    hidden: !root.collapsible,
+                    action: () => TrayPlacementService.toggleExpandOnHover()
                 }
             ]
         }

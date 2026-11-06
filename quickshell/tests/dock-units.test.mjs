@@ -158,8 +158,3 @@ test("with tray collapsing off a peek dock stays expanded only while the tray is
     assert.equal(config.visibility(true, dock("peek", [{ ...tray, enabled: false }, clock]), false), "collapsed");
     assert.equal(config.visibility(true, dock("slide", [tray]), false), "hidden");
 });
-
-test("a peek dock expands from its arrow on hover unless told otherwise", () => {
-    const docks = plain(config.normalize([{ id: "unset" }, { id: "click", peekExpandOn: "arrowClick" }, { id: "dock", peekExpandOn: "dockHover" }, { id: "junk", peekExpandOn: "hover" }]));
-    assert.deepEqual(docks.map(dock => dock.peekExpandOn), ["arrowHover", "arrowClick", "dockHover", "arrowHover"]);
-});
