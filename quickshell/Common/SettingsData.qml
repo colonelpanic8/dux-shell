@@ -452,7 +452,7 @@ Singleton {
     property string systemTrayIconTintMode: Spec.SPEC.systemTrayIconTintMode.def
     property int systemTrayIconTintSaturation: Spec.SPEC.systemTrayIconTintSaturation.def
     property int systemTrayIconTintStrength: Spec.SPEC.systemTrayIconTintStrength.def
-    property bool systemTrayPlacementToggle: Spec.SPEC.systemTrayPlacementToggle.def
+    property bool systemTrayQuickMenu: Spec.SPEC.systemTrayQuickMenu.def
     property string systemTrayDefaultPlacement: Spec.SPEC.systemTrayDefaultPlacement.def
     property bool trayOverflowToDock: Spec.SPEC.trayOverflowToDock.def
     property bool trayCollapseDefault: Spec.SPEC.trayCollapseDefault.def

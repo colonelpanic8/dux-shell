@@ -31,13 +31,12 @@ BasePill {
     property real sectionAvailablePrimarySize: 0
     property string surfaceKind: "bar"
     readonly property var placement: TrayPlacementService.forScreen(parentScreen?.name ?? "")
-    readonly property bool placementToggleAvailable: SettingsData.systemTrayPlacementToggle && placement.toggle
-    readonly property bool placementToggleShown: placementToggleAvailable
-    // The end facing the middle of the screen holds the move button and the expand arrow.
+    // The end facing the middle of the screen holds the quick options button and the expand arrow.
     readonly property bool innerEndLeads: surfaceKind === "dock" ? barConfig?.align === "end" : section !== "left"
-    // Whether this tray can collapse here; collapsing itself can be switched off.
+    // Whether this tray can collapse here; collapsing itself can be switched off from the quick menu.
     readonly property bool collapsible: surfaceKind === "dock" ? DockConfig.trayCollapsible(barConfig) : SettingsData.widgetOption("systemTray", widgetData, "trayCollapseInBar") === true
     readonly property bool collapsesInBar: surfaceKind === "bar" && collapsible && TrayPlacementService.collapseEnabled
+    readonly property bool quickMenuShown: SettingsData.systemTrayQuickMenu && (placement.toggle || collapsible)
     property bool hostCollapsed: false
     property bool barExpanded: false
     readonly property bool collapsed: surfaceKind === "dock" ? hostCollapsed : collapsesInBar && !barExpanded
@@ -55,7 +54,7 @@ BasePill {
     readonly property bool collapsedArrowNeeded: hiddenBarItems.length > 0 || displayedMainBarItems.some((entry, index) => !keptWhenCollapsed(entry.key, index))
     readonly property bool collapsedArrowShown: collapsed && collapsedArrowNeeded
     // The bar reserves only the collapsed tray; expanded, it draws over its neighbours toward the inner end.
-    readonly property int collapsedSlots: displayedMainBarItems.filter((entry, index) => keptWhenCollapsed(entry.key, index)).length + (collapsedArrowNeeded ? 1 : 0) + (placementToggleAvailable ? 1 : 0)
+    readonly property int collapsedSlots: displayedMainBarItems.filter((entry, index) => keptWhenCollapsed(entry.key, index)).length + (collapsedArrowNeeded ? 1 : 0) + (quickMenuShown ? 1 : 0)
     reservedPrimarySize: collapsesInBar && allTrayItems.length > 0 ? Theme.snap(collapsedSlots * trayItemSize + Math.max(0, collapsedSlots - 1) * configuredIconSpacing + horizontalPadding * 2, dpr) : -1
     overlayAlign: innerEndLeads ? 1 : 0
     // A translucent fill would show the covered neighbours through the overlay.
@@ -96,7 +95,7 @@ BasePill {
     // The tray grows toward its inner end, so the arrow sits on that side and points that way.
     readonly property bool collapsedArrowLeads: innerEndLeads
     readonly property string collapsedArrowIcon: OverflowLayout.expanderIcon(isVerticalOrientation ? (collapsedArrowLeads ? "bottom" : "top") : (collapsedArrowLeads ? "right" : "left"), false)
-    readonly property bool interactionActive: menuOpen || trayMenuState.showMenu
+    readonly property bool interactionActive: menuOpen || trayMenuState.showMenu || (quickMenuLoader.item?.openState ?? false)
     readonly property var hiddenTrayIds: TrayMenuManager.envHiddenTrayIds
     readonly property var allTrayItems: TrayMenuManager.filterEnvHidden(SystemTray.items.values)
     function getTrayItemKey(item) {
@@ -569,10 +568,10 @@ BasePill {
             layoutDirection: root.reverseInlineHorizontal ? Qt.RightToLeft : Qt.LeftToRight
 
             Loader {
-                active: SettingsData.systemTrayPlacementToggle && root.innerEndLeads !== root.reverseInlineHorizontal
+                active: SettingsData.systemTrayQuickMenu && root.innerEndLeads !== root.reverseInlineHorizontal
                 // An inactive Loader keeps its last size, and the Row would still make room for it.
                 visible: active
-                sourceComponent: placementToggleComponent
+                sourceComponent: quickMenuButtonComponent
             }
 
             Loader {
@@ -655,9 +654,9 @@ BasePill {
             }
 
             Loader {
-                active: SettingsData.systemTrayPlacementToggle && root.innerEndLeads === root.reverseInlineHorizontal
+                active: SettingsData.systemTrayQuickMenu && root.innerEndLeads === root.reverseInlineHorizontal
                 visible: active
-                sourceComponent: placementToggleComponent
+                sourceComponent: quickMenuButtonComponent
             }
         }
     }
@@ -676,14 +675,49 @@ BasePill {
     }
 
     Component {
-        id: placementToggleComponent
+        id: quickMenuButtonComponent
 
         TrayEdgeButton {
+            id: quickMenuButton
             tray: root
-            shown: root.placementToggleShown
-            iconName: root.isVerticalOrientation ? "swap_horiz" : "swap_vert"
-            tooltipText: root.surfaceKind === "dock" ? I18n.tr("Move tray to the bar", "tooltip on the tray button that moves the system tray from a dock into the bar") : I18n.tr("Move tray to the corner", "tooltip on the tray button that moves the system tray from the bar into a dock")
-            onClicked: TrayPlacementService.togglePlacement()
+            shown: root.quickMenuShown
+            iconName: "tune"
+            tooltipText: I18n.tr("Tray options", "tooltip on the tray button that opens a menu to move the tray or stop it collapsing")
+            onClicked: root.openQuickMenu(quickMenuButton)
+        }
+    }
+
+    function openQuickMenu(button) {
+        const anchor = button.popupAnchor();
+        if (!anchor)
+            return;
+        quickMenuLoader.active = true;
+        quickMenuLoader.item.openFromBar(anchor);
+    }
+
+    // Loaded on first use; its open state holds the dock or the expanded bar tray like an item menu does.
+    Loader {
+        id: quickMenuLoader
+        active: false
+        sourceComponent: DContextMenu {
+            layerNamespace: "dms:tray-quick-menu"
+            menuItems: [
+                {
+                    type: "item",
+                    icon: root.isVerticalOrientation ? "swap_horiz" : "swap_vert",
+                    text: root.surfaceKind === "dock" ? I18n.tr("Move tray to the bar", "tray options menu item that moves the system tray from a dock into the bar") : I18n.tr("Move tray to the corner", "tray options menu item that moves the system tray from the bar into a dock"),
+                    hidden: !root.placement.toggle,
+                    // Moving can destroy this tray and its menu, so let the menu close first.
+                    action: () => Qt.callLater(() => TrayPlacementService.togglePlacement())
+                },
+                {
+                    type: "item",
+                    icon: TrayPlacementService.collapseEnabled ? "check_box" : "check_box_outline_blank",
+                    text: I18n.tr("Collapse automatically", "tray options menu check item: whether the tray collapses to its pinned icons and an expand arrow"),
+                    hidden: !root.collapsible,
+                    action: () => TrayPlacementService.toggleCollapse()
+                }
+            ]
         }
     }
 
@@ -967,9 +1001,9 @@ BasePill {
             spacing: root.configuredIconSpacing
 
             Loader {
-                active: SettingsData.systemTrayPlacementToggle && root.innerEndLeads
+                active: SettingsData.systemTrayQuickMenu && root.innerEndLeads
                 visible: active
-                sourceComponent: placementToggleComponent
+                sourceComponent: quickMenuButtonComponent
             }
 
             Loader {
@@ -1069,9 +1103,9 @@ BasePill {
             }
 
             Loader {
-                active: SettingsData.systemTrayPlacementToggle && !root.innerEndLeads
+                active: SettingsData.systemTrayQuickMenu && !root.innerEndLeads
                 visible: active
-                sourceComponent: placementToggleComponent
+                sourceComponent: quickMenuButtonComponent
             }
         }
     }
