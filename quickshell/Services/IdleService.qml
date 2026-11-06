@@ -107,6 +107,31 @@ Singleton {
         return next;
     }
 
+    // Actions idling would take first, ignoring inhibitors; ties run together.
+    readonly property var firstIdleActions: {
+        const stages = [["lock", isShellLocked ? 0 : lockTimeout], ["monitorOff", postLockMonitorActive ? postLockMonitorTimeout : monitorTimeout], ["suspend", suspendTimeout]].filter(([, timeout]) => timeout > 0);
+        if (stages.length === 0)
+            return ["monitorOff"];
+        const first = Math.min(...stages.map(([, timeout]) => timeout));
+        return stages.filter(([, timeout]) => timeout === first).map(([action]) => action);
+    }
+
+    function triggerIdleNow() {
+        log.info("Idle triggered manually:", firstIdleActions.join(", "));
+        for (const action of firstIdleActions) {
+            switch (action) {
+            case "lock":
+                lockRequested();
+                break;
+            case "suspend":
+                requestSuspend();
+                break;
+            default:
+                requestMonitorOff();
+            }
+        }
+    }
+
     function addCountdownRef() {
         countdownRefs++;
     }
