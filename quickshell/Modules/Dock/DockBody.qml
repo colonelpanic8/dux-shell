@@ -83,8 +83,9 @@ FocusScope {
     readonly property bool interactionActive: editMode || expansionOwner !== null || widgetStrip.interactionActive || (appProvider.item?.interactionActive ?? false)
 
     function revealWidgetItem(item) {
-        revealSticky = true;
-        revealHold.restart();
+        expand();
+        if (!dockMouseArea.containsMouse)
+            revealHold.restart();
         if (item)
             widgetStrip.revealItem(item);
     }
@@ -163,6 +164,9 @@ FocusScope {
             return 0;
         return Math.max(config.mode === "taskbar" ? 0 : dockGeometry.frameInset, SettingsData.taskbarInsetForEdge(screen, isVertical ? "bottom" : "right"));
     }
+    // A taskbar spans its edge, so `align` places its content instead of its body.
+    readonly property string bodyAlign: config.mode === "taskbar" && !collapsed ? "center" : config.align
+    readonly property real alongMargin: config.mode === "taskbar" ? 0 : dockGeometry.effectiveMargin
     readonly property real availablePrimary: Math.max(0, (isVertical ? height : width) - ((config.mode === "taskbar" ? 0 : config.margin) + (usesConnectedFrameChrome ? 0 : borderThickness)) * 2 - primaryStartInset - primaryEndInset)
     readonly property var shapeTarget: ({
             width: dockBackground.targetWidth,
@@ -267,8 +271,8 @@ FocusScope {
             dockLease.release();
             dockLease.dockId = currentDockId;
         }
-        const presented = dock.geometryReady && (hostWindow?.visible ?? true) && (dock.reveal || slideXSpring.running || slideYSpring.running) && dock.hasApps;
-        const phase = !presented ? "hidden" : ((!dock.reveal && (slideXSpring.running || slideYSpring.running)) ? "closing" : ((slideXSpring.running || slideYSpring.running) ? "opening" : "open"));
+        const presented = dock.geometryReady && (hostWindow?.visible ?? true) && (dock.shown || slideXSpring.running || slideYSpring.running) && dock.hasApps;
+        const phase = !presented ? "hidden" : ((!dock.shown && (slideXSpring.running || slideYSpring.running)) ? "closing" : ((slideXSpring.running || slideYSpring.running) ? "opening" : "open"));
         const bodyX = dock._dockWindowOriginX() + dockBackground.x + dockContainer.x + dockMouseArea.x + dockCore.x;
         const bodyY = dock._dockWindowOriginY() + dockBackground.y + dockContainer.y + dockMouseArea.y + dockCore.y;
         const bodyW = dock.hasApps ? dockBackground.width : 0;
@@ -344,7 +348,7 @@ FocusScope {
         onTriggered: dock._syncDockChromeState()
     }
 
-    readonly property var slideSpringParams: dock.usesConnectedFrameChrome ? Theme.springPreset("default", Theme.variantDuration(Theme.popoutAnimationDuration, dock.reveal)) : Theme.springPreset("fast", Theme.shortDuration)
+    readonly property var slideSpringParams: dock.usesConnectedFrameChrome ? Theme.springPreset("default", Theme.variantDuration(Theme.popoutAnimationDuration, dock.shown)) : Theme.springPreset("fast", Theme.shortDuration)
 
     SpringMotion {
         id: slideXSpring
@@ -382,9 +386,54 @@ FocusScope {
 
     Timer {
         id: revealHold
-        interval: 250
+        interval: dock.config.hideDelay
         repeat: false
         onTriggered: dock.revealSticky = false
+    }
+
+    readonly property bool peeks: DockConfig.peeks(config)
+    // Asked to expand, by the pointer resting on the expander or an explicit request; dropped once nothing holds the dock.
+    property bool expandRequested: false
+    // revealHold runs only while the pointer is away, so a requested dock stays sticky until the pointer leaves.
+    readonly property bool held: dockMouseArea.containsMouse || revealSticky || interactionActive || contextMenuOpen
+    onHeldChanged: {
+        if (!held)
+            expandRequested = false;
+    }
+    function expand() {
+        revealWait.stop();
+        revealHold.stop();
+        revealSticky = true;
+        expandRequested = true;
+    }
+    // Over the tray arrow of a collapsed dock, which clicking expands at once.
+    property bool expanderHovered: false
+    function hoverExpander(hovered) {
+        expanderHovered = hovered;
+    }
+    readonly property bool pointerOnExpander: {
+        if (!dockMouseArea.containsMouse)
+            return false;
+        if (!peeks || config.peekExpandOn === "dockHover")
+            return true;
+        return config.peekExpandOn === "arrowHover" && expanderHovered;
+    }
+    onPointerOnExpanderChanged: {
+        if (!pointerOnExpander) {
+            revealWait.stop();
+            return;
+        }
+        if (config.revealDelay > 0)
+            revealWait.restart();
+        else
+            expand();
+    }
+
+    Timer {
+        id: revealWait
+        interval: dock.config.revealDelay
+        repeat: false
+        onTriggered: dock.expand()
     }
 
     // Flip `reveal` false when a modal claims this edge; reuses the slide animation
@@ -404,7 +453,8 @@ FocusScope {
     }
 
     readonly property bool overviewReveal: dock.config.openOnOverview && CompositorService.overviewActiveForScreen(dock._dockScreenName)
-    readonly property bool hoverOrActive: dockMouseArea.containsMouse || dock.interactionActive || contextMenuOpen || revealSticky
+    // Menus and the hide delay hold a peek dock open but never expand it; anything holding a slide dock reveals it.
+    readonly property bool hoverOrActive: expandRequested || editMode || expansionOwner !== null || (!peeks && (interactionActive || contextMenuOpen || revealSticky))
 
     onOverviewRevealChanged: {
         if (overviewReveal && usesConnectedFrameChrome) {
@@ -414,24 +464,25 @@ FocusScope {
         }
     }
 
-    property bool reveal: {
+    // hidden: off screen; collapsed: a peek dock showing only its collapsed widgets; expanded: the whole dock.
+    readonly property string visibilityState: {
         if ((!startupRevealDone && !overviewReveal) || !dock.geometryReady || !(hostWindow?.visible ?? true))
-            return false;
+            return "hidden";
 
         if (_modalRetractActive)
-            return false;
+            return "hidden";
 
         if (overviewReveal)
-            return true;
+            return "expanded";
 
         if (hiddenForFullscreen || !dock.config.enabled)
-            return false;
+            return "hidden";
 
-        if (dock.config.smartAutoHide)
-            return !shouldHideForWindows || hoverOrActive;
-
-        return !autoHide || hoverOrActive;
+        return DockConfig.visibility(!hoverOrActive && (dock.config.smartAutoHide ? shouldHideForWindows : autoHide), dock.config);
     }
+    readonly property bool reveal: visibilityState === "expanded"
+    readonly property bool collapsed: visibilityState === "collapsed"
+    readonly property bool shown: visibilityState !== "hidden"
 
     onContextMenuOpenChanged: {
         if (!contextMenuOpen && autoHide && !dockMouseArea.containsMouse) {
@@ -448,10 +499,10 @@ FocusScope {
     }
 
     on_DockScreenNameChanged: dockChromeSync.schedule()
+    onShownChanged: dock._syncDockChromeState()
     onRevealChanged: {
         if (!reveal)
             editMode = false;
-        dock._syncDockChromeState();
         if (!reveal) {
             tooltipRevealDelay.stop();
             dockTooltip.hide();
@@ -518,7 +569,7 @@ FocusScope {
     Item {
         id: maskItem
         visible: false
-        readonly property bool expanded: dock.reveal
+        readonly property bool expanded: dock.shown
         readonly property bool chrome: dock.usesConnectedFrameChrome
         readonly property bool atEndEdge: dock.config.position === SettingsData.Position.Bottom || dock.config.position === SettingsData.Position.Right
         readonly property real innerReach: borderThickness + animationHeadroom
@@ -656,13 +707,11 @@ FocusScope {
             id: dockMouseArea
             onContainsMouseChanged: {
                 if (containsMouse) {
-                    dock.revealSticky = true;
                     revealHold.stop();
-                } else {
-                    if (dock.autoHide && !dock.contextMenuOpen) {
-                        revealHold.restart();
-                    }
+                    return;
                 }
+                if (dock.autoHide && !dock.contextMenuOpen)
+                    revealHold.restart();
             }
             property var currentScreen: modelData ? modelData : dock.screen
             property real screenWidth: currentScreen ? currentScreen.width : 1920
@@ -675,17 +724,18 @@ FocusScope {
                     const h = dockBackground.height;
                     return Math.min(h + dock.config.spacing * 2, dock.availablePrimary);
                 }
-                return dock.reveal ? Theme.px(dockGeometry.motionThickness, _dpr) : 1;
+                return dock.shown ? Theme.px(dockGeometry.motionThickness, dock._dpr) : 1;
             }
             width: {
                 if (dock.isVertical) {
-                    return dock.reveal ? Theme.px(dockGeometry.motionThickness, _dpr) : 1;
+                    return dock.shown ? Theme.px(dockGeometry.motionThickness, dock._dpr) : 1;
                 }
                 const w = dockBackground.width;
                 return Math.min(w + dock.config.spacing * 2, dock.availablePrimary);
             }
-            x: !dock.isVertical ? Math.round((parent.width - width + dock.primaryStartInset - dock.primaryEndInset) / 2) : (dock.config.position === SettingsData.Position.Right ? parent.width - width : 0)
-            y: dock.isVertical ? Math.round((parent.height - height + dock.primaryStartInset - dock.primaryEndInset) / 2) : (dock.config.position === SettingsData.Position.Bottom ? parent.height - height : 0)
+            readonly property real along: Math.max(0, Math.min((dock.isVertical ? parent.height - height : parent.width - width), DockConfig.alignedStart(dock.bodyAlign, dock.config.alignOffset, dock.isVertical ? parent.height : parent.width, dock.isVertical ? height : width, dock.primaryStartInset + dock.alongMargin - dock.config.spacing, dock.primaryEndInset + dock.alongMargin - dock.config.spacing)))
+            x: !dock.isVertical ? along : (dock.config.position === SettingsData.Position.Right ? parent.width - width : 0)
+            y: dock.isVertical ? along : (dock.config.position === SettingsData.Position.Bottom ? parent.height - height : 0)
             hoverEnabled: true
             acceptedButtons: dock.config.editOnRightClick ? Qt.RightButton : Qt.NoButton
             onClicked: dock.editMode = !dock.editMode
@@ -713,7 +763,15 @@ FocusScope {
                 id: dockContainer
                 anchors.fill: parent
                 clip: false
-                opacity: dock.startupRevealDone ? 1 : 0
+                opacity: !dock.startupRevealDone ? 0 : dock.collapsed ? dock.config.peekOpacity : 1
+
+                Behavior on opacity {
+                    enabled: dock.startupRevealDone && !SettingsData.reduceMotion
+                    NumberAnimation {
+                        duration: Theme.shortDuration
+                        easing.type: Easing.OutCubic
+                    }
+                }
 
                 transform: Translate {
                     id: dockSlide
@@ -721,7 +779,7 @@ FocusScope {
                     readonly property real targetX: {
                         if (!dock.isVertical)
                             return 0;
-                        if (dock.reveal)
+                        if (dock.shown)
                             return 0;
                         if (dock.usesConnectedFrameChrome) {
                             const retractDist = dockBackground.width + dock.config.spacing + 10;
@@ -737,7 +795,7 @@ FocusScope {
                     readonly property real targetY: {
                         if (dock.isVertical)
                             return 0;
-                        if (dock.reveal)
+                        if (dock.shown)
                             return 0;
                         if (dock.usesConnectedFrameChrome) {
                             const retractDist = dockBackground.height + dock.config.spacing + 10;
@@ -765,10 +823,16 @@ FocusScope {
                     id: dockBackground
                     objectName: "dockBackground"
                     visible: dock.hasApps
-                    x: !dock.isVertical ? Math.round((parent.width - width + dock.primaryStartInset - dock.primaryEndInset) / 2) : (dock.config.position === SettingsData.Position.Right ? parent.width - width - dockGeometry.bodyEdgeMargin : dockGeometry.bodyEdgeMargin)
-                    y: dock.isVertical ? Math.round((parent.height - height + dock.primaryStartInset - dock.primaryEndInset) / 2) : (dock.config.position === SettingsData.Position.Bottom ? parent.height - height - dockGeometry.bodyEdgeMargin : dockGeometry.bodyEdgeMargin)
+                    readonly property real along: {
+                        if (dock.bodyAlign === "center")
+                            return Math.round(((dock.isVertical ? parent.height - height : parent.width - width) + dock.primaryStartInset - dock.primaryEndInset) / 2);
+                        const extent = dock.isVertical ? dock.height : dock.width;
+                        return DockConfig.alignedStart(dock.bodyAlign, dock.config.alignOffset, extent, dock.isVertical ? height : width, dock.primaryStartInset + dock.alongMargin, dock.primaryEndInset + dock.alongMargin) - dockMouseArea.along;
+                    }
+                    x: !dock.isVertical ? along : (dock.config.position === SettingsData.Position.Right ? parent.width - width - dockGeometry.bodyEdgeMargin : dockGeometry.bodyEdgeMargin)
+                    y: dock.isVertical ? along : (dock.config.position === SettingsData.Position.Bottom ? parent.height - height - dockGeometry.bodyEdgeMargin : dockGeometry.bodyEdgeMargin)
 
-                    readonly property real targetPrimary: dock.config.mode === "taskbar" ? dock.availablePrimary : Math.min(widgetStrip.restLength + dock.config.spacing * 2, dock.availablePrimary)
+                    readonly property real targetPrimary: dock.config.mode === "taskbar" && !dock.collapsed ? dock.availablePrimary : Math.min(widgetStrip.restLength + dock.config.spacing * 2, dock.availablePrimary)
                     readonly property real targetWidth: dock.isVertical ? dock.effectiveBarThickness + dock.expansionExtent : targetPrimary
                     readonly property real targetHeight: dock.isVertical ? targetPrimary : dock.effectiveBarThickness + dock.expansionExtent
                     // Magnification expansion bypasses the spring so icons and background stay in sync
@@ -782,7 +846,7 @@ FocusScope {
                     MorphSurface {
                         motion: surfaceMotion
                         anchors.fill: parent
-                        visible: !usesConnectedFrameChrome && (!FrameTransitionState.effectiveConnectedFrameModeActive || dock.reveal)
+                        visible: !dock.usesConnectedFrameChrome && (!FrameTransitionState.effectiveConnectedFrameModeActive || dock.shown)
                         color: dock.surfaceColor
                     }
 
@@ -794,7 +858,7 @@ FocusScope {
 
                 Item {
                     id: dockConnectedChrome
-                    visible: Theme.isConnectedEffect && dock.reveal && dock.hasApps && !FrameTransitionState.effectiveConnectedFrameModeActive
+                    visible: Theme.isConnectedEffect && dock.shown && dock.hasApps && !FrameTransitionState.effectiveConnectedFrameModeActive
                     readonly property real extraLeft: dock.isVertical ? 0 : Theme.connectedCornerRadius
                     readonly property real extraTop: dock.isVertical ? Theme.connectedCornerRadius : 0
                     readonly property real bodyRadius: dock.surfaceRadius
@@ -862,8 +926,8 @@ FocusScope {
                         }) : item), dock.config.order)
                     availableSize: dock.isVertical ? height : width
                     expansionLimit: Math.max(0, dock.availablePrimary - widgetStrip.restLength - dock.config.spacing * 2)
-                    fillAvailable: dock.config.mode === "taskbar"
-                    align: dock.config.mode === "taskbar" ? dock.config.taskbarAlign : "start"
+                    fillAvailable: dock.config.mode === "taskbar" && !dock.collapsed
+                    align: dock.config.mode === "taskbar" ? dock.config.align : "start"
                     onReorderRequested: (from, to) => dock.reorderUnits(from, to)
                     onRemoveRequested: instanceId => dock.removeWidget(instanceId)
                 }
