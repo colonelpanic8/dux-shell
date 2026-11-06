@@ -37,9 +37,11 @@ BasePill {
         return Array.isArray(keys) ? keys : [];
     }
     readonly property int collapsedItemCount: Math.max(0, Math.min(10, Number(SettingsData.widgetOption("systemTray", widgetData, "trayCollapsedItemCount")) || 0))
-    // Rendered order, so the tray's own ordering decides which leading items stay.
-    readonly property var collapsedKeptKeys: displayedMainBarItems.slice(0, collapsedItemCount).map(entry => entry.key).concat(pinnedTrayKeys)
-    readonly property bool collapsedArrowShown: collapsed && (hiddenBarItems.length > 0 || mainBarItems.some(entry => !collapsedKeptKeys.includes(entry.key)))
+    // By rendered position, not key: items without an id all share the empty key.
+    function keptWhenCollapsed(key, index) {
+        return index < collapsedItemCount || (key !== "" && pinnedTrayKeys.includes(key));
+    }
+    readonly property bool collapsedArrowShown: collapsed && (hiddenBarItems.length > 0 || displayedMainBarItems.some((entry, index) => !keptWhenCollapsed(entry.key, index)))
     // The dock grows away from its aligned end, so the arrow sits on that side and points that way.
     readonly property bool collapsedArrowLeads: barConfig?.align === "end"
     readonly property string collapsedArrowIcon: OverflowLayout.expanderIcon(isVerticalOrientation ? (collapsedArrowLeads ? "bottom" : "top") : (collapsedArrowLeads ? "right" : "left"), false)
@@ -784,7 +786,7 @@ BasePill {
                 }
             }
 
-            readonly property bool collapsedAway: root.collapsed && !root.collapsedKeptKeys.includes(delegateRoot.itemKey)
+            readonly property bool collapsedAway: root.collapsed && !root.keptWhenCollapsed(delegateRoot.itemKey, index)
             states: State {
                 when: delegateRoot.collapsedAway
                 PropertyChanges {
