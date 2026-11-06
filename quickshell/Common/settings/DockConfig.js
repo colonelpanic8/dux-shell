@@ -3,6 +3,8 @@
 var EDGES = ["top", "bottom", "left", "right"];
 var MAGNIFICATION_PROFILES = ["parabolic", "cosine", "gaussian"];
 var DEFAULT_MAGNIFICATION_PROFILE = "parabolic";
+var ALIGNMENTS = ["start", "center", "end"];
+var PEEK_EXPAND_TRIGGERS = ["arrowHover", "arrowClick", "dockHover"];
 
 function clone(value) {
     return JSON.parse(JSON.stringify(value));
@@ -18,7 +20,8 @@ function create(id, name) {
         position: 1,
         mode: "compact",
         middleClickAction: "close",
-        taskbarAlign: "center",
+        align: "center",
+        alignOffset: 0,
         widgetExpansion: "popout",
         iconSize: 42,
         spacing: 8,
@@ -29,6 +32,11 @@ function create(id, name) {
         followInterfaceStyle: true,
         autoHide: false,
         smartAutoHide: false,
+        autoHideStyle: "slide",
+        peekOpacity: 1,
+        peekExpandOn: "arrowHover",
+        revealDelay: 0,
+        hideDelay: 250,
         useOverlayLayer: false,
         editOnRightClick: false,
         showOnFullscreen: false,
@@ -101,8 +109,16 @@ function normalize(configs, presets) {
         result.position = Number.isInteger(config.position) && config.position >= 0 && config.position < 4 ? config.position : 1;
         result.mode = config.mode === "taskbar" ? "taskbar" : "compact";
         result.middleClickAction = ["close", "launch"].includes(config.middleClickAction) ? config.middleClickAction : defaults.middleClickAction;
-        result.taskbarAlign = ["start", "center", "end"].includes(config.taskbarAlign) ? config.taskbarAlign : "center";
+        // Compact docks always sat centered, so only a taskbar keeps its old content alignment.
+        const legacyAlign = result.mode === "taskbar" ? config.taskbarAlign : undefined;
+        result.align = ALIGNMENTS.includes(config.align) ? config.align : ALIGNMENTS.includes(legacyAlign) ? legacyAlign : "center";
+        result.alignOffset = Math.round(bounded(result.alignOffset, 0, 0, 4096));
         result.widgetExpansion = config.widgetExpansion === "inline" ? "inline" : "popout";
+        result.autoHideStyle = config.autoHideStyle === "peek" ? "peek" : "slide";
+        result.peekExpandOn = PEEK_EXPAND_TRIGGERS.includes(config.peekExpandOn) ? config.peekExpandOn : defaults.peekExpandOn;
+        result.peekOpacity = bounded(result.peekOpacity, defaults.peekOpacity, 0, 1);
+        result.revealDelay = Math.round(bounded(result.revealDelay, defaults.revealDelay, 0, 2000));
+        result.hideDelay = Math.round(bounded(result.hideDelay, defaults.hideDelay, 0, 5000));
         result.iconSize = bounded(result.iconSize, defaults.iconSize, 16, 96);
         result.itemSpacing = bounded(result.itemSpacing, defaults.itemSpacing, 0, 32);
         for (const key of ["spacing", "margin"])
@@ -134,11 +150,37 @@ function normalize(configs, presets) {
             return item;
         });
         result.widgets = withAppSlots(result.widgets, config.id);
+        for (const widget of result.widgets) {
+            if (widget.showWhenCollapsed !== true)
+                delete widget.showWhenCollapsed;
+        }
         result.order = Array.isArray(config.order) ? [...new Set(config.order.filter(id => typeof id === "string"))] : [];
         delete result.launcherPosition;
         delete result.thickness;
+        delete result.taskbarAlign;
         return result;
     });
+}
+
+// Start of a body `length` long on an edge `extent` long, `offset` away from the aligned end.
+function alignedStart(align, offset, extent, length, startGap, endGap) {
+    if (align === "start")
+        return startGap + offset;
+    if (align === "end")
+        return extent - endGap - length - offset;
+    return Math.round((extent - length + startGap - endGap) / 2);
+}
+
+// A peek dock stays on screen while auto-hidden, showing only its collapsed widgets;
+// with none to show it hides like a slide dock.
+function peeks(config) {
+    return config.autoHideStyle === "peek" && config.widgets.some(widget => widget.enabled !== false && widget.showWhenCollapsed === true);
+}
+
+function visibility(autoHidden, config) {
+    if (!autoHidden)
+        return "expanded";
+    return peeks(config) ? "collapsed" : "hidden";
 }
 
 function matches(config, screen) {
@@ -329,7 +371,8 @@ function surfaceItems(widgets, apps, order) {
             unitId,
             widgetId: "application",
             appData: app,
-            appIndex: index
+            appIndex: index,
+            showWhenCollapsed: widget.showWhenCollapsed === true
         });
     for (const id of unitList(widgets, pinUnits(apps), order)) {
         if (id.startsWith("pin:")) {
