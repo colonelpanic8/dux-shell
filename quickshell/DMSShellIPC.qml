@@ -2182,6 +2182,28 @@ Item {
             return String(TrayPlacementService.toggleCollapse());
         }
 
+        function pins(): string {
+            return TrayPlacementService.pinnedKeys.join("\n");
+        }
+
+        function pin(key: string): string {
+            if (!TrayPlacementService.setPinned(key, true))
+                return "ERROR: No tray key specified";
+            return String(TrayPlacementService.pinnedKeys.includes(key));
+        }
+
+        function unpin(key: string): string {
+            if (!TrayPlacementService.setPinned(key, false))
+                return "ERROR: No tray key specified";
+            return String(TrayPlacementService.pinnedKeys.includes(key));
+        }
+
+        function togglePin(key: string): string {
+            if (!TrayPlacementService.togglePin(key))
+                return "ERROR: No tray key specified";
+            return String(TrayPlacementService.pinnedKeys.includes(key));
+        }
+
         target: "tray"
     }
 
