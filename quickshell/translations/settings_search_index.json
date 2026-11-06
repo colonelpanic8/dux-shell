@@ -10419,7 +10419,7 @@
     "optionFile": "SystemTrayOptions.qml"
   },
   {
-    "section": "barWidgetOption:SystemTrayOptions.qml:17",
+    "section": "barWidgetOption:SystemTrayOptions.qml:19",
     "label": "Collapse in bar",
     "tabIndex": 22,
     "keywords": [],
@@ -10643,6 +10643,22 @@
     "optionFile": "IslandOptions.qml"
   },
   {
+    "section": "barWidgetOption:SystemTrayOptions.qml:17",
+    "label": "Expand on hover",
+    "tabIndex": 22,
+    "keywords": [],
+    "runtimeType": "barWidgetOption",
+    "optionFile": "SystemTrayOptions.qml"
+  },
+  {
+    "section": "barWidgetOption:SystemTrayOptions.qml:18",
+    "label": "Expand on hover by default",
+    "tabIndex": 22,
+    "keywords": [],
+    "runtimeType": "barWidgetOption",
+    "optionFile": "SystemTrayOptions.qml"
+  },
+  {
     "section": "barWidgetOption:IslandOptions.qml:18",
     "label": "Expansion mode",
     "tabIndex": 22,
@@ -10859,7 +10875,7 @@
     "optionFile": "AppsDockOptions.qml"
   },
   {
-    "section": "barWidgetOption:SystemTrayOptions.qml:19",
+    "section": "barWidgetOption:SystemTrayOptions.qml:21",
     "label": "Leading icons",
     "tabIndex": 22,
     "keywords": [],
@@ -11083,7 +11099,7 @@
     "optionFile": "WorkspaceSwitcherOptions.qml"
   },
   {
-    "section": "barWidgetOption:SystemTrayOptions.qml:20",
+    "section": "barWidgetOption:SystemTrayOptions.qml:22",
     "label": "Pins apply to the bar tray and every dock tray. A tray icon's menu pins it too.",
     "tabIndex": 22,
     "keywords": [],
@@ -11275,7 +11291,7 @@
     "optionFile": "SystemTrayOptions.qml"
   },
   {
-    "section": "barWidgetOption:SystemTrayOptions.qml:18",
+    "section": "barWidgetOption:SystemTrayOptions.qml:20",
     "label": "Show when collapsed",
     "tabIndex": 22,
     "keywords": [],
