@@ -624,6 +624,15 @@ var LOCAL_SPEC = {
     systemTrayIconTintStrength: {
         def: 135
     },
+    systemTrayPlacementToggle: {
+        def: true
+    },
+    systemTrayDefaultPlacement: {
+        def: "bar"
+    },
+    trayOverflowToDock: {
+        def: false
+    },
     controlCenterColumns: {
         def: 8
     },
