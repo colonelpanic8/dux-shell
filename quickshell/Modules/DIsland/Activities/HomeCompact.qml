@@ -778,7 +778,7 @@ Item {
                         id: trayMouseArea
                         anchors.fill: parent
                         hoverEnabled: true
-                        acceptedButtons: Qt.LeftButton | Qt.RightButton
+                        acceptedButtons: Qt.LeftButton | Qt.MiddleButton | Qt.RightButton
                         cursorShape: dragHandler.dragging ? Qt.DragMoveCursor : Qt.PointingHandCursor
 
                         onContainsMouseChanged: {
@@ -856,6 +856,16 @@ Item {
                             }
                             if (!trayItemRoot.trayItem)
                                 return;
+                            switch (TrayMenuManager.clickAction(trayItemRoot.trayItem, mouse.button)) {
+                            case "activate":
+                                trayItemRoot.trayItem.activate();
+                                return;
+                            case "secondaryActivate":
+                                trayItemRoot.trayItem.secondaryActivate();
+                                return;
+                            case "none":
+                                return;
+                            }
                             const screen = root.controller.screen;
                             const screenX = screen?.x || 0;
                             const screenY = screen?.y || 0;
@@ -869,22 +879,12 @@ Item {
                                 targetX = root.islandEdgeCoord();
                                 targetY = root.screenPosAt(trayMouseArea, 0, trayItemRoot.height / 2).y;
                             }
-                            if (mouse.button === Qt.RightButton) {
-                                if (trayItemRoot.trayItem.hasMenu && root.trayContextMenu) {
-                                    root.trayContextMenu.openFor(trayItemRoot.trayItem, targetX, targetY, screen, edge);
-                                    return;
-                                }
-                                const mousePt = root.screenPosAt(trayMouseArea, mouse.x, mouse.y);
-                                TrayMenuManager.callContextMenuFallback(trayItemRoot.trayItem.id, screenX + mousePt.x, screenY + mousePt.y);
-                                return;
-                            }
-                            if (!trayItemRoot.trayItem.onlyMenu) {
-                                trayItemRoot.trayItem.activate();
-                                return;
-                            }
                             if (trayItemRoot.trayItem.hasMenu && root.trayContextMenu) {
                                 root.trayContextMenu.openFor(trayItemRoot.trayItem, targetX, targetY, screen, edge);
+                                return;
                             }
+                            const mousePt = root.screenPosAt(trayMouseArea, mouse.x, mouse.y);
+                            TrayMenuManager.callContextMenuFallback(trayItemRoot.trayItem.id, screenX + mousePt.x, screenY + mousePt.y);
                         }
                     }
                 }
