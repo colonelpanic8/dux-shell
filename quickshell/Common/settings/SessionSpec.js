@@ -162,6 +162,14 @@ var LOCAL_SPEC = {
     trayItemOrder: {
         def: []
     },
+    // "" until the tray is first moved, so the configured default applies.
+    systemTrayPlacement: {
+        def: ""
+    },
+    // null until first toggled, so the configured default applies.
+    trayCollapseEnabled: {
+        def: null
+    },
     recentColors: {
         def: []
     },

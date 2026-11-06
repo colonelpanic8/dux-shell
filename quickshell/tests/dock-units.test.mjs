@@ -141,13 +141,22 @@ test("peek keys are bounded and only widgets shown when collapsed carry the flag
     assert.deepEqual(plain(items.filter(item => item.showWhenCollapsed).map(item => item.id)), ["a:pinned_a", "a:pinned_b", "a:separator_ungrouped", "a:niri:4"]);
 });
 
+const dock = (style, widgets) => ({ autoHideStyle: style, widgets });
+const tray = { widgetId: "systemTray", showWhenCollapsed: true };
+
 test("an auto-hidden dock collapses only in peek style with something to show", () => {
-    const dock = (style, widgets) => ({ autoHideStyle: style, widgets });
-    const tray = { widgetId: "systemTray", showWhenCollapsed: true };
-    assert.equal(config.visibility(false, dock("peek", [tray])), "expanded");
-    assert.equal(config.visibility(true, dock("peek", [tray])), "collapsed");
-    assert.equal(config.visibility(true, dock("slide", [tray])), "hidden");
-    assert.equal(config.visibility(true, dock("peek", [{ ...tray, enabled: false }, { widgetId: "clock" }])), "hidden");
+    assert.equal(config.visibility(false, dock("peek", [tray]), true), "expanded");
+    assert.equal(config.visibility(true, dock("peek", [tray]), true), "collapsed");
+    assert.equal(config.visibility(true, dock("slide", [tray]), true), "hidden");
+    assert.equal(config.visibility(true, dock("peek", [{ ...tray, enabled: false }, { widgetId: "clock" }]), true), "hidden");
+});
+
+test("with tray collapsing off a peek dock stays expanded only while the tray is on it when collapsed", () => {
+    const clock = { widgetId: "clock", showWhenCollapsed: true };
+    assert.equal(config.visibility(true, dock("peek", [tray, { widgetId: "clock" }]), false), "expanded");
+    assert.equal(config.visibility(true, dock("peek", [{ ...tray, showWhenCollapsed: false }, clock]), false), "collapsed");
+    assert.equal(config.visibility(true, dock("peek", [{ ...tray, enabled: false }, clock]), false), "collapsed");
+    assert.equal(config.visibility(true, dock("slide", [tray]), false), "hidden");
 });
 
 test("a peek dock expands from its arrow on hover unless told otherwise", () => {

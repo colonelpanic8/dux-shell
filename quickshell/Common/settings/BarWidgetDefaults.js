@@ -186,7 +186,9 @@ var DEFAULTS = {
         trayMaxVisibleItems: 0,
         trayIconSpacing: 0,
         trayPinnedItems: [],
-        trayCollapsedItemCount: 3
+        trayCollapsedItemCount: 3,
+        trayCollapseInBar: false,
+        trayExpandOn: "arrowHover"
     },
     battery: {
         showBatteryPercent: true,

@@ -35,6 +35,10 @@ Item {
     property bool isTopBarEdge: false
     property bool isBottomBarEdge: false
     property real crossEdgeExtension: 0
+    // Room taken in the bar when it is less than the drawn size; the rest overlays the neighbours on the `overlayAlign` side (1 = toward the start).
+    property real reservedPrimarySize: -1
+    property real overlayAlign: 0.5
+    readonly property bool overlaying: reservedPrimarySize >= 0 && (isVerticalOrientation ? visualHeight : visualWidth) > reservedPrimarySize
     property string segmentRole: "solo"
     property real splitOffset: 0
     property int pressedSegment: 0
@@ -217,15 +221,16 @@ Item {
         };
     }
 
-    width: isVerticalOrientation ? barThickness : visualWidth
-    height: isVerticalOrientation ? visualHeight : barThickness
+    width: isVerticalOrientation ? barThickness : (reservedPrimarySize >= 0 ? reservedPrimarySize : visualWidth)
+    height: isVerticalOrientation ? (reservedPrimarySize >= 0 ? reservedPrimarySize : visualHeight) : barThickness
     enabled: width > 0 && height > 0
 
     Item {
         id: visualContent
         width: root.visualWidth
         height: root.visualHeight
-        anchors.centerIn: parent
+        x: (root.width - width) * (root.isVerticalOrientation ? 0.5 : root.overlayAlign)
+        y: (root.height - height) * (root.isVerticalOrientation ? root.overlayAlign : 0.5)
 
         readonly property real blurRadius: root.blurRadius
         readonly property bool split: root.splitOffset > 0

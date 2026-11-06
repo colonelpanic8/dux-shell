@@ -46,7 +46,8 @@ Item {
                 size: wrapper?.preferredSize ?? 0,
                 min: wrapper?.minimumSize ?? 0,
                 mode: wrapper?.overflowMode ?? "bar",
-                priority: wrapper?.overflowPriority ?? 0
+                priority: wrapper?.overflowPriority ?? 0,
+                elsewhere: wrapper?.routesAway ?? false
             });
         }
         return entries;
@@ -56,7 +57,7 @@ Item {
         const entries = [];
         for (let index = 0; index < (entryRepeater?.count ?? 0); index++)
             entries.push({
-                size: entryRepeater.itemAt(index)?.primarySize ?? 0
+                size: entryRepeater.itemAt(index)?.away ? 0 : (entryRepeater.itemAt(index)?.primarySize ?? 0)
             });
         return entries;
     }
@@ -66,7 +67,7 @@ Item {
         const entries = [];
         for (let index = 0; index < (entryRepeater?.count ?? 0); index++) {
             const wrapper = entryRepeater.itemAt(index);
-            if (wrapper?.available && wrapper.inOverflow)
+            if (wrapper?.available && wrapper.inOverflow && !wrapper.away)
                 entries.push(wrapper);
         }
         return entries;

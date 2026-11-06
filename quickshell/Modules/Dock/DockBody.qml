@@ -112,8 +112,8 @@ FocusScope {
             editMode = false;
         event.accepted = true;
     }
-    onConfigChanged: {
-        if (expansionOwner && !config.widgets.some(item => item.enabled !== false && item.id === expansionOwner.widgetInstanceId))
+    onShownConfigChanged: {
+        if (expansionOwner && !shownConfig.widgets.some(item => item.enabled !== false && item.id === expansionOwner.widgetInstanceId))
             closeExpansion();
     }
     AxisContext {
@@ -391,7 +391,14 @@ FocusScope {
         onTriggered: dock.revealSticky = false
     }
 
-    readonly property bool peeks: DockConfig.peeks(config)
+    readonly property bool hostsTray: TrayPlacementService.forScreen(_dockScreenName).host === "dock"
+    // The tray widget is present only while the tray lives here; edit mode keeps it so it can be managed.
+    readonly property var shownConfig: hostsTray || editMode ? config : Object.assign({}, config, {
+        widgets: config.widgets.map(widget => widget.widgetId === "systemTray" ? Object.assign({}, widget, {
+                enabled: false
+            }) : widget)
+    })
+    readonly property bool peeks: DockConfig.peeks(shownConfig)
     // Asked to expand, by the pointer resting on the expander or an explicit request; dropped once nothing holds the dock.
     property bool expandRequested: false
     // revealHold runs only while the pointer is away, so a requested dock stays sticky until the pointer leaves.
@@ -478,7 +485,7 @@ FocusScope {
         if (hiddenForFullscreen || !dock.config.enabled)
             return "hidden";
 
-        return DockConfig.visibility(!hoverOrActive && (dock.config.smartAutoHide ? shouldHideForWindows : autoHide), dock.config);
+        return DockConfig.visibility(!hoverOrActive && (dock.config.smartAutoHide ? shouldHideForWindows : autoHide), dock.shownConfig, TrayPlacementService.collapseEnabled);
     }
     readonly property bool reveal: visibilityState === "expanded"
     readonly property bool collapsed: visibilityState === "collapsed"
@@ -921,7 +928,7 @@ FocusScope {
                     surfaceContext: widgetContext
                     components: widgetFactory.componentMap
                     applicationStrip: appProvider.item?.stripItem ?? null
-                    model: DockConfig.surfaceItems(dock.config.widgets, (applicationStrip?.items ?? []).map(item => applicationStrip.overflowExpanded ? Object.assign({}, item, {
+                    model: DockConfig.surfaceItems(dock.shownConfig.widgets, (applicationStrip?.items ?? []).map(item => applicationStrip.overflowExpanded ? Object.assign({}, item, {
                             isInOverflow: false
                         }) : item), dock.config.order)
                     availableSize: dock.isVertical ? height : width

@@ -2155,6 +2155,33 @@ Item {
             return `id: ${id}\ntitle: ${title}\nhasMenu: ${hasMenu}\nonlyMenu: ${onlyMenu}`;
         }
 
+        function placement(): string {
+            return TrayPlacementService.placement;
+        }
+
+        function setPlacement(where: string): string {
+            if (!TrayPlacementService.setPlacement(where))
+                return `ERROR: Unknown placement: ${where}. Use bar or dock`;
+            return TrayPlacementService.placement;
+        }
+
+        function togglePlacement(): string {
+            return TrayPlacementService.togglePlacement();
+        }
+
+        function collapse(): string {
+            return String(TrayPlacementService.collapseEnabled);
+        }
+
+        function setCollapse(enabled: bool): string {
+            TrayPlacementService.setCollapseEnabled(enabled);
+            return String(TrayPlacementService.collapseEnabled);
+        }
+
+        function toggleCollapse(): string {
+            return String(TrayPlacementService.toggleCollapse());
+        }
+
         target: "tray"
     }
 

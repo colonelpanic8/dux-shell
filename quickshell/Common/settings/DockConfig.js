@@ -177,10 +177,18 @@ function peeks(config) {
     return config.autoHideStyle === "peek" && config.widgets.some(widget => widget.enabled !== false && widget.showWhenCollapsed === true);
 }
 
-function visibility(autoHidden, config) {
+// The tray collapses with a peek dock only while it stays on the collapsed dock.
+function trayCollapsible(config) {
+    return config.autoHideStyle === "peek" && config.widgets.some(widget => widget.widgetId === "systemTray" && widget.enabled !== false && widget.showWhenCollapsed === true);
+}
+
+// With tray collapsing off, a peek dock holding the tray stays expanded instead of collapsing around it.
+function visibility(autoHidden, config, trayCollapseEnabled) {
     if (!autoHidden)
         return "expanded";
-    return peeks(config) ? "collapsed" : "hidden";
+    if (!peeks(config))
+        return "hidden";
+    return trayCollapseEnabled || !trayCollapsible(config) ? "collapsed" : "expanded";
 }
 
 function matches(config, screen) {
