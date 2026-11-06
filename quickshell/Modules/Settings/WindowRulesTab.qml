@@ -129,9 +129,12 @@ Item {
             "defaultColumnWidth": I18n.tr("Width"),
             "defaultWindowHeight": I18n.tr("Height"),
             "variableRefreshRate": "VRR",
+            "vrrFullscreenOnly": I18n.tr("VRR Fullscreen Only"),
+            "onXdgActivate": I18n.tr("On activation", "window rule option, what niri does when the window asks to be activated"),
             "blockOutFrom": I18n.tr("Block out"),
             "defaultColumnDisplay": I18n.tr("Display"),
             "scrollFactor": I18n.tr("Scroll"),
+            "pinchSensitivity": I18n.tr("Pinch", "short window rule property label for touchpad pinch sensitivity"),
             "cornerRadius": I18n.tr("Radius"),
             "clipToGeometry": I18n.tr("Clip", "verb, short window rule property label for clip to geometry"),
             "tiledState": I18n.tr("Tiled", "adjective, short window rule property label for tiled state"),
@@ -675,6 +678,7 @@ Item {
         sourceComponent: WindowRuleEditorDialog {
             supportingText: I18n.tr("Changes save to %1", "hint under the keybind and window rule editors, %1 is the config file the changes are written to").arg(root.dmsRulesFileName)
             onRejected: root.closeEditor()
+            onRuleApplied: root.loadWindowRules()
             onRuleSubmitted: {
                 root.loadWindowRules();
                 root.closeEditor();

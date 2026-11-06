@@ -12,6 +12,7 @@ import qs.Modules.Settings.Widgets
 import "../../Common/Format.js" as Format
 import "../../Common/ThemePalette.js" as ThemePalette
 import "../../DCommon/Common/MaterialWallpaper.js" as Art
+import "../../Common/WallpaperFormats.js" as WallpaperFormats
 
 Column {
     id: root
@@ -182,7 +183,7 @@ Column {
             "message": I18n.tr("Delete wallpaper '%1'?", "material wallpaper delete confirmation").arg(label),
             "confirmText": I18n.tr("Delete"),
             "cancelText": I18n.tr("Cancel"),
-            "confirmColor": Theme.error,
+            "danger": true,
             "onConfirm": () => SessionData.removeMaterialWallpaperProfile(id)
         });
     }
@@ -967,17 +968,6 @@ Column {
         }
     }
 
-    Loader {
-        width: parent.width
-        active: CompositorService.isAqueous
-        sourceComponent: AqueousAppearanceSettings {
-            cursor: true
-            settingKey: "aqueousCursor"
-            title: I18n.tr("Aqueous cursor", "Aqueous compositor cursor synchronization settings")
-            visible: CompositorService.isAqueous
-        }
-    }
-
     SettingsCard {
         tab: "theme"
         tags: ["cursor", "mouse", "pointer", "theme", "size", "hide", "typing", "touch", "timeout"]
@@ -1175,7 +1165,7 @@ Column {
             bucket: "wallpaper"
             showHiddenFiles: true
             startPath: root.currentWallpaper
-            filters: ["*.jpg", "*.jpeg", "*.png", "*.bmp", "*.gif", "*.webp", "*.jxl", "*.avif", "*.heif", "*.exr", "*.svg"]
+            filters: WallpaperFormats.nameFilters(true)
             onAccepted: paths => root.applyWallpaper(paths[0])
         }
     }

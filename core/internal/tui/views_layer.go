@@ -34,11 +34,11 @@ func (m Model) resumeAfterLayering() (tea.Model, tea.Cmd) {
 
 func (m Model) setupUserServices() tea.Cmd {
 	return func() tea.Msg {
-		if !m.useSystemdConfig() || !m.optionalDepSelected("danksearch") {
+		if !m.useSystemdConfig() || !m.optionalDepSelected("dux-search") {
 			return nil
 		}
 		if err := distros.SetupDsearchService(context.Background(), func(line string) { m.logChan <- line }); err != nil {
-			m.logChan <- "danksearch service setup warning (non-fatal): " + err.Error()
+			m.logChan <- "dux-search service setup warning (non-fatal): " + err.Error()
 		}
 		return nil
 	}
@@ -91,7 +91,7 @@ func (m Model) viewLayerPackages() string {
 	}
 
 	if m.osInfo != nil && distros.Registry[m.osInfo.Distribution.ID].Family == distros.FamilyFedora {
-		b.WriteString(m.styles.Subtle.Render("Prefer a ready-made image? Zirconium ships niri and Dux Shell:"))
+		b.WriteString(m.styles.Subtle.Render("Prefer a ready-made image? Zirconium ships niri and Dux Modular Shell:"))
 		b.WriteByte('\n')
 		b.WriteString("  " + m.styles.Subtle.Render(distros.ZirconiumSwitchCommand))
 		b.WriteString("\n\n")

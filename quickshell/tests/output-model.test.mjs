@@ -45,14 +45,24 @@ test("identifier rules: niri appends the serial or Unknown, hyprland uses desc: 
     assert.equal(model.profileIdentifier(dell, "DP-1", "system", "niri"), "DP-1");
 });
 
-test("niri kdl parser: top-level off disables, nested off does not, on-demand vrr, raw transform spelling", () => {
+test("niri kdl parser: top-level off disables, nested off does not, on-demand vrr, raw transform spelling, max-bpc kept", () => {
     const parsed = plain(model.parseNiriOutputs(text("niri-outputs.kdl")));
     assert.deepEqual(Object.keys(parsed), ["DP-1", "HDMI-A-1", "eDP-1", "Dell Inc. DELL U2720Q ABC123"]);
     assert.deepEqual(parsed["DP-1"], { name: "DP-1", disabled: false, logical: { x: 0, y: 0, scale: 1.25, transform: "90" }, modes: [{ width: 2560, height: 1440, refresh_rate: 143998 }], current_mode: 0, vrr_enabled: true, vrr_on_demand: true, vrr_supported: true });
     assert.equal(parsed["HDMI-A-1"].disabled, true);
     assert.equal(parsed["eDP-1"].disabled, false);
-    assert.deepEqual([parsed["eDP-1"].vrr_enabled, parsed["eDP-1"].vrr_on_demand], [true, false]);
+    assert.deepEqual([parsed["eDP-1"].vrr_enabled, parsed["eDP-1"].vrr_on_demand, parsed["eDP-1"].max_bpc], [true, false, 10]);
     assert.deepEqual(parsed["Dell Inc. DELL U2720Q ABC123"].logical, { x: -2560, y: 0, scale: 1.5, transform: "flipped-90" });
+    assert.deepEqual([parsed["HDMI-A-1"].max_bpc, parsed["Dell Inc. DELL U2720Q ABC123"].max_bpc, model.parseNiriOutputs('output "X" {\n max-bpc 6 /* x */\n}')["X"].max_bpc], [8, 12, 6]);
+});
+
+test("niri kdl parser: commented-out headers, braces in comments and strings, nested block comments and slashdash nodes are not outputs", () => {
+    const parse = src => plain(model.parseNiriOutputs(src));
+    const scales = src => Object.fromEntries(Object.entries(parse(src)).map(([name, output]) => [name, output.logical.scale]));
+    assert.deepEqual(scales('// output "DP-9" {\noutput "DP-1" {\n    // }\n    scale 1.5\n}'), { "DP-1": 1.5 });
+    assert.deepEqual(scales('/-output "DP-9" {\n    scale 3\n}\noutput "DP-1" {\n    /* a /* b */ scale 3 */\n    scale 1.25\n}'), { "DP-1": 1.25 });
+    assert.deepEqual(scales('spawn-at-startup "sh" "-c" r#"printf \'"\' /*"#\nspawn-at-startup #"x" }"#\noutput "DP-1" {\n    scale 1.5\n}'), { "DP-1": 1.5 });
+    assert.deepEqual(scales('output "Odd {name}" {\n    mode "1920x1080@60" // }\n    scale 2\n}\noutput "DP-1" {\n    scale 1\n}'), { "Odd {name}": 2, "DP-1": 1 });
 });
 
 test("hyprland conf lines only parse for 1.x profile migration: extras, disable line, desc name, trailing space, mirror, bare line skipped", () => {
@@ -177,28 +187,6 @@ test("filterDisconnectedOnly keeps saved outputs no live head matches, desc: key
     assert.deepEqual(Object.keys(model.filterDisconnectedOnly(hyprParsed, live, "system", "niri")), ["desc:Dell Inc. DELL U2720Q ABC123", "DP-2", "DP-3", "it's"]);
     assert.deepEqual(model.filterDisconnectedOnly(plain(model.parseNiriOutputs(text("niri-outputs.kdl"))), live, "model", "niri"), {});
     assert.deepEqual(Object.keys(model.filterDisconnectedOnly({ " DP-1 ": { name: "DP-1" }, "DP-7 ": { name: "DP-7" } }, live, "system", "niri")), ["DP-7 "]);
-});
-
-test("aqueous heads: fingerprint, head list and comparison tolerate scale noise and equivalent custom modes", () => {
-    assert.deepEqual(JSON.parse(model.outputFingerprint(wlr.outputs))[0], { name: "DP-1", id: 1, enabled: true, x: 0, y: 0, scale: 1.5, transform: 0, mode: [3840, 2160, 59997], adaptiveSync: 1 });
-    const heads = plain(model.outputHeads(wlr.outputs));
-    assert.deepEqual(heads[0], { name: "DP-1", enabled: true, modeId: 1, position: { x: 0, y: 0 }, scale: 1.5, transform: 0, adaptiveSync: 1 });
-    assert.deepEqual(heads[2], { name: "HDMI-A-1", enabled: false, position: { x: 0, y: 0 }, scale: 0, transform: 0, adaptiveSync: 0 });
-    assert.equal(model.outputHeadsMatch(heads, wlr.outputs, wlr.outputs), true);
-    const moved = clone(wlr.outputs);
-    moved[0].x = 10;
-    assert.equal(model.outputHeadsMatch(heads, moved, wlr.outputs), false);
-    assert.equal(model.outputHeadsMatch(heads.slice(1), wlr.outputs, wlr.outputs), false);
-    const renumbered = clone(wlr.outputs);
-    renumbered[0].id = 99;
-    assert.equal(model.outputHeadsMatch(heads, wlr.outputs, renumbered), false);
-    const scaled = clone(heads);
-    scaled[1].scale = 1.30001;
-    assert.equal(model.outputHeadsMatch(scaled, wlr.outputs, wlr.outputs), true);
-    const customMode = clone(heads);
-    customMode[0].modeId = 77;
-    customMode[0].customMode = { width: 3840, height: 2160, refresh: 59997 };
-    assert.equal(model.outputHeadsMatch(customMode, wlr.outputs, wlr.outputs), true);
 });
 
 test("sizes: rotation swaps, niri ceils and hyprland rounds logical sizes, bounds default to 1920x1080", () => {

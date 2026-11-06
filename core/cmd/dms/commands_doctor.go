@@ -14,6 +14,7 @@ import (
 	"slices"
 	"strconv"
 	"strings"
+	"sync"
 
 	"github.com/charmbracelet/lipgloss"
 	"github.com/duxlabs-dev/dux-shell/core/internal/blur"
@@ -100,7 +101,6 @@ var (
 	mangowcVersionRegex    = regexp.MustCompile(`mango (\d+\.\d+\.\d+)`)
 	miracleVersionRegex    = regexp.MustCompile(`miracle-wm v?(\d+\.\d+\.\d+)`)
 	scrollVersionRegex     = regexp.MustCompile(`scroll version (\d+\.\d+)`)
-	aqueousVersionRegex    = regexp.MustCompile(`(?i)aqueous v?(\d+\.\d+(?:\.\d+)?)`)
 	umbrielVersionRegex    = regexp.MustCompile(`umbriel (\d+\.\d+\.\d+)`)
 )
 
@@ -366,20 +366,46 @@ func checkEnvVar(name string) []checkResult {
 }
 
 func checkXDGMenuPrefix() []checkResult {
-	menuPrefix := os.Getenv("XDG_MENU_PREFIX")
+	shellUnderSystemd := dmsServiceState().active == "active"
+	return xdgMenuPrefixResult(os.Getenv("XDG_MENU_PREFIX"), shellUnderSystemd, sessionEnvValue)
+}
+
+// Compositor environment blocks never reach dms.service or anything DMS launches.
+func xdgMenuPrefixResult(menuPrefix string, shellUnderSystemd bool, sessionEnv func(string) string) []checkResult {
+	url := doctorDocsURL + "#xdg-menu-prefix"
 	if menuPrefix != "" {
-		if checkXDGMenuFile(menuPrefix) {
-			return []checkResult{{catEnvironment, "XDG_MENU_PREFIX", statusInfo, menuPrefix, "", doctorDocsURL + "#xdg-menu-prefix"}}
+		if !checkXDGMenuFile(menuPrefix) {
+			return []checkResult{{catEnvironment, "XDG_MENU_PREFIX", statusWarn, fmt.Sprintf("%s (menu file not found)", menuPrefix), fmt.Sprintf("Dolphin 'Open with…' dialog may be empty. Ensure %sapplications.menu exists in ~/.config/menus or /etc/xdg/menus.", menuPrefix), url}}
 		}
-		return []checkResult{{catEnvironment, "XDG_MENU_PREFIX", statusWarn, fmt.Sprintf("%s (menu file not found)", menuPrefix), fmt.Sprintf("Dolphin 'Open with…' dialog may be empty. Ensure %sapplications.menu exists in ~/.config/menus or /etc/xdg/menus.", menuPrefix), doctorDocsURL + "#xdg-menu-prefix"}}
+		if shellUnderSystemd && sessionEnv("XDG_MENU_PREFIX") == "" {
+			return []checkResult{{catEnvironment, "XDG_MENU_PREFIX", statusWarn, fmt.Sprintf("%s (not in the systemd user environment)", menuPrefix), fmt.Sprintf("dms.service and apps launched from DMS only see the systemd user environment. Set XDG_MENU_PREFIX=%s in ~/.config/environment.d/ as well; a compositor environment block does not reach them.", menuPrefix), url}}
+		}
+		return []checkResult{{catEnvironment, "XDG_MENU_PREFIX", statusInfo, menuPrefix, "", url}}
 	}
 	if _, err := exec.LookPath("keditfiletype"); err == nil {
-		return []checkResult{{catEnvironment, "XDG_MENU_PREFIX", statusWarn, "Not set", "Dolphin file associations and 'Open with…' dialog may be empty. Set XDG_MENU_PREFIX=plasma- in your compositor's environment block.", doctorDocsURL + "#xdg-menu-prefix"}}
+		hint := "Dolphin file associations and 'Open with…' dialog may be empty. Set XDG_MENU_PREFIX=plasma- in your compositor's environment block."
+		if shellUnderSystemd {
+			hint = "Dolphin file associations and 'Open with…' dialog may be empty. dms.service and apps launched from DMS only see the systemd user environment, so set XDG_MENU_PREFIX=plasma- in ~/.config/environment.d/; a compositor environment block does not reach them."
+		}
+		return []checkResult{{catEnvironment, "XDG_MENU_PREFIX", statusWarn, "Not set", hint, url}}
 	}
 	if doctorVerbose {
-		return []checkResult{{catEnvironment, "XDG_MENU_PREFIX", statusInfo, "Not set", "", doctorDocsURL + "#xdg-menu-prefix"}}
+		return []checkResult{{catEnvironment, "XDG_MENU_PREFIX", statusInfo, "Not set", "", url}}
 	}
 	return nil
+}
+
+func sessionEnvValue(name string) string {
+	output, err := exec.Command("systemctl", "--user", "show-environment").Output()
+	if err != nil {
+		return ""
+	}
+	for line := range strings.SplitSeq(string(output), "\n") {
+		if value, ok := strings.CutPrefix(line, name+"="); ok {
+			return value
+		}
+	}
+	return ""
 }
 
 // qtQueryBinaries are the Qt build tools that can be asked where Qt looks for
@@ -852,12 +878,12 @@ func checkWindowManagers(qsVersion string) []checkResult {
 		{"mangowc", "mango", "-v", firstSubmatch(mangowcVersionRegex), []string{"mango"}},
 		{"Miracle WM", "miracle-wm", "--version", firstSubmatch(miracleVersionRegex), []string{"miracle-wm"}},
 		{"Scroll", "scroll", "--version", firstSubmatch(scrollVersionRegex), []string{"scroll"}},
-		{"Aqueous", "aqueous", "-version", firstSubmatch(aqueousVersionRegex), []string{"aqueous"}},
 		{"Umbriel", "umbriel", "--version", firstSubmatch(umbrielVersionRegex), []string{"umbriel"}},
 	}
 
 	var results []checkResult
 	foundAny := false
+	mangoVersion := ""
 
 	for _, c := range compositors {
 		if !slices.ContainsFunc(c.commands, utils.CommandExists) {
@@ -892,13 +918,11 @@ func checkWindowManagers(qsVersion string) []checkResult {
 			results = append(results, checkHyprlandQuickshellFloor(ver, qsVersion)...)
 			results = append(results, checkHyprlandDeprecatedConfig()...)
 		}
-		if c.name == "mangowc" && mangoLacksSnakeCase(ver) {
-			results = append(results, checkResult{
-				catCompositor, "Mango config format", statusError,
-				fmt.Sprintf("Mango %s is older than 0.18", ver),
-				"DMS writes Mango config with the snake_case keys of Mango 0.18 and later, which this release rejects; upgrade Mango",
-				doctorDocsURL + "#compositor-checks",
-			})
+		if c.name == "niri" {
+			results = append(results, checkNiriConfig(filepath.Join(utils.XDGConfigHome(), "niri"))...)
+		}
+		if c.name == "mangowc" {
+			mangoVersion = ver
 		}
 	}
 
@@ -906,7 +930,7 @@ func checkWindowManagers(qsVersion string) []checkResult {
 		results = append(results, checkResult{
 			catCompositor, "Compositor", statusError,
 			"No supported Wayland compositor found",
-			"Install Hyprland, niri, Sway, River, Wayfire, labwc, mangowc, miracle-wm, Scroll, Aqueous, or Umbriel",
+			"Install Hyprland, niri, Sway, River, Wayfire, labwc, mangowc, miracle-wm, Scroll, or Umbriel",
 			doctorDocsURL + "#compositor-checks",
 		})
 	}
@@ -915,11 +939,15 @@ func checkWindowManagers(qsVersion string) []checkResult {
 		results = append(results, checkResult{catCompositor, "Active", statusInfo, wm, "", doctorDocsURL + "#compositor"})
 	}
 
-	if os.Getenv("AQUEOUS_SOCKET") != "" {
-		results = append(results, checkAqueousConfigHelper())
-	}
-
 	if os.Getenv("MANGO_INSTANCE_SIGNATURE") != "" {
+		if mangoLacksSnakeCase(mangoVersion) {
+			results = append(results, checkResult{
+				catCompositor, "Mango config format", statusError,
+				fmt.Sprintf("Mango %s is older than 0.18", mangoVersion),
+				"DMS writes Mango config with the snake_case keys of Mango 0.18 and later, which this release rejects; upgrade Mango",
+				doctorDocsURL + "#compositor-checks",
+			})
+		}
 		results = append(results, checkMangoConfig(mangoconf.Dir())...)
 	}
 
@@ -970,7 +998,7 @@ func mangoUnknownKeywords(output string) []string {
 
 func checkMangoConfig(mangoDir string) []checkResult {
 	url := doctorDocsURL + "#compositor-checks"
-	mainPath := filepath.Join(mangoDir, "config.conf")
+	mainPath := mangoconf.MainConfig(mangoDir)
 	var results []checkResult
 	if output, err := mangoParseConfig(mainPath); err == nil {
 		if unknown := mangoUnknownKeywords(output); len(unknown) > 0 {
@@ -988,6 +1016,13 @@ func checkMangoConfig(mangoDir string) []checkResult {
 		if err != nil {
 			continue
 		}
+		if mangoconf.IsTOML(path) {
+			var b strings.Builder
+			for _, e := range mangoconf.TOMLEntries(string(data)) {
+				b.WriteString(e.Key + "=" + e.Value + "\n")
+			}
+			data = []byte(b.String())
+		}
 		if mangoLegacyOverviewBinds.Match(data) {
 			overviewBinds = append(overviewBinds, filepath.Base(path))
 		}
@@ -1000,17 +1035,151 @@ func checkMangoConfig(mangoDir string) []checkResult {
 	return results
 }
 
-func checkAqueousConfigHelper() checkResult {
+var niriKeepMaxBpc = regexp.MustCompile(`^\s*keep-max-bpc-unchanged\b`)
+
+// DMS never rewrites the user's config.kdl or binds.kdl, so name the line to fix by hand.
+func checkNiriConfig(niriDir string) []checkResult {
 	url := doctorDocsURL + "#compositor-checks"
-	path, err := exec.LookPath("aqueous-config")
-	if err != nil {
-		return checkResult{catCompositor, "aqueous-config", statusWarn, "Not found", "Keybind and display settings edits from the shell need the aqueous-config helper", url}
+	paths, _ := filepath.Glob(filepath.Join(niriDir, "dms", "*.kdl"))
+	paths = append([]string{filepath.Join(niriDir, "config.kdl")}, paths...)
+
+	var results []checkResult
+	for _, path := range paths {
+		data, err := os.ReadFile(path)
+		if err != nil {
+			continue
+		}
+		rel, _ := filepath.Rel(niriDir, path)
+		for i, line := range strings.Split(kdlMaskInactive(string(data)), "\n") {
+			if !niriKeepMaxBpc.MatchString(line) {
+				continue
+			}
+			results = append(results, checkResult{catCompositor, "keep-max-bpc", statusWarn,
+				fmt.Sprintf("%s:%d sets keep-max-bpc-unchanged", rel, i+1),
+				"niri after 26.04 removed this debug flag and rejects the whole config. Delete the line; set max-bpc in the output section instead.", url})
+		}
 	}
-	details := "Keybind and display settings edits from the shell"
-	if doctorVerbose {
-		details = path
+	return results
+}
+
+// Blanks comments and slashdash nodes, keeping newlines, so line checks only see what niri parses.
+func kdlMaskInactive(src string) string {
+	out := []byte(src)
+	blank := func(from, to int) {
+		for i := from; i < to; i++ {
+			if out[i] != '\n' {
+				out[i] = ' '
+			}
+		}
 	}
-	return checkResult{catCompositor, "aqueous-config", statusOK, "Installed", details, url}
+	for i := 0; i < len(src); {
+		switch {
+		case strings.HasPrefix(src[i:], "//"):
+			end := kdlLineEnd(src, i)
+			blank(i, end)
+			i = end
+		case strings.HasPrefix(src[i:], "/*"):
+			end := kdlBlockCommentEnd(src, i)
+			blank(i, end)
+			i = end
+		case strings.HasPrefix(src[i:], "/-"):
+			end := kdlSlashdashEnd(src, i+2)
+			blank(i, end)
+			i = end
+		case src[i] == '"' || (src[i] == 'r' && kdlRawStringStart(src, i)):
+			i = kdlStringEnd(src, i)
+		default:
+			i++
+		}
+	}
+	return string(out)
+}
+
+func kdlLineEnd(src string, i int) int {
+	if end := strings.IndexByte(src[i:], '\n'); end >= 0 {
+		return i + end
+	}
+	return len(src)
+}
+
+func kdlBlockCommentEnd(src string, i int) int {
+	depth := 0
+	for i < len(src) {
+		switch {
+		case strings.HasPrefix(src[i:], "/*"):
+			depth++
+			i += 2
+		case strings.HasPrefix(src[i:], "*/"):
+			depth--
+			i += 2
+			if depth == 0 {
+				return i
+			}
+		default:
+			i++
+		}
+	}
+	return len(src)
+}
+
+// A slashdash node ends at its line or ';' unless it opened a block, which ends at the matching '}'.
+func kdlSlashdashEnd(src string, i int) int {
+	depth := 0
+	for i < len(src) {
+		switch c := src[i]; {
+		case strings.HasPrefix(src[i:], "//"):
+			i = kdlLineEnd(src, i)
+		case strings.HasPrefix(src[i:], "/*"):
+			i = kdlBlockCommentEnd(src, i)
+		case c == '"' || (c == 'r' && kdlRawStringStart(src, i)):
+			i = kdlStringEnd(src, i)
+		case c == '{':
+			depth++
+			i++
+		case c == '}':
+			depth--
+			i++
+			if depth <= 0 {
+				return i
+			}
+		case (c == '\n' || c == ';') && depth == 0:
+			return i
+		default:
+			i++
+		}
+	}
+	return len(src)
+}
+
+func kdlRawStringStart(src string, i int) bool {
+	j := i + 1
+	for j < len(src) && src[j] == '#' {
+		j++
+	}
+	return j < len(src) && src[j] == '"'
+}
+
+func kdlStringEnd(src string, i int) int {
+	if src[i] == 'r' {
+		hashes := 0
+		for src[i+1+hashes] == '#' {
+			hashes++
+		}
+		closer := "\"" + strings.Repeat("#", hashes)
+		if end := strings.Index(src[i+2+hashes:], closer); end >= 0 {
+			return i + 2 + hashes + end + len(closer)
+		}
+		return len(src)
+	}
+	for j := i + 1; j < len(src); j++ {
+		switch src[j] {
+		case '\\':
+			j++
+		case '"':
+			return j + 1
+		}
+	}
+	return len(src)
 }
 
 func checkCompositorBlurSupport() checkResult {
@@ -1103,8 +1272,6 @@ func getVersionFromCommand(cmd, arg string, parse func(string) string) (display,
 
 func detectRunningWM() string {
 	switch {
-	case os.Getenv("AQUEOUS_SOCKET") != "":
-		return "Aqueous"
 	case os.Getenv("HYPRLAND_INSTANCE_SIGNATURE") != "":
 		return "Hyprland"
 	case os.Getenv("NIRI_SOCKET") != "":
@@ -1201,7 +1368,7 @@ ShellRoot {
 		{"Polkit", "Authentication prompts"},
 		{"IdleMonitor", "Idle detection"},
 		{"IdleInhibitor", "Prevent idle/sleep"},
-		{"ShortcutInhibitor", "Allow shortcut management (niri, Aqueous)"},
+		{"ShortcutInhibitor", "Allow shortcut management (niri)"},
 		{"BackgroundBlur", "Background blur API support in Quickshell"},
 	}
 
@@ -1376,6 +1543,18 @@ func getOptionalDBusStatus(busName string) (status, string) {
 	}
 }
 
+func checkFcitx5(url string) checkResult {
+	const desc = "Input Method Framework support"
+	switch {
+	case !utils.CommandExists("fcitx5"):
+		return checkResult{catOptionalFeatures, "fcitx5", statusInfo, "Not installed", desc, url}
+	case !utils.IsSessionDBusServiceAvailable("org.fcitx.Fcitx5"):
+		return checkResult{catOptionalFeatures, "fcitx5", statusWarn, "Installed but not running", desc, url}
+	default:
+		return checkResult{catOptionalFeatures, "fcitx5", statusOK, "Available", desc, url}
+	}
+}
+
 func checkOptionalDependencies() []checkResult {
 	var results []checkResult
 
@@ -1438,8 +1617,9 @@ func checkOptionalDependencies() []checkResult {
 		{"matugen", "matugen", "Dynamic theming", true},
 		{"cava", "cava", "Audio visualizer", true},
 		{"khal", "khal", "Calendar events", false},
-		{"danksearch", "dsearch", "File search", false},
-		{"dankcalendar", "dcal", "Calendar app", false},
+		{"dux-search", "dsearch", "File search", false},
+		{"dux-calendar", "dcal", "Calendar app", false},
+		{"dux-files", "dfiles", "File manager", false},
 		{"fprintd", "fprintd-list", "Fingerprint auth", false},
 	}
 
@@ -1457,6 +1637,7 @@ func checkOptionalDependencies() []checkResult {
 	}
 
 	results = append(results, checkAdwGtk3())
+	results = append(results, checkFcitx5(optionalFeaturesURL))
 
 	return results
 }
@@ -1556,7 +1737,7 @@ func checkSystemdServices() []checkResult {
 
 	var results []checkResult
 
-	dmsState := getServiceState("dms", true)
+	dmsState := dmsServiceState()
 	wanted := config.SessionWanted()
 	if !dmsState.exists {
 		results = append(results, checkResult{catServices, "dms.service", statusInfo, "Not installed", "Optional user service", doctorDocsURL + "#services"})
@@ -1756,6 +1937,8 @@ type serviceState struct {
 	enabled string
 	active  string
 }
+
+var dmsServiceState = sync.OnceValue(func() serviceState { return getServiceState("dms", true) })
 
 func getServiceState(name string, userService bool) serviceState {
 	args := []string{"is-enabled", name}

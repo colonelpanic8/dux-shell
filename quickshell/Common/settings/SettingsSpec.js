@@ -246,6 +246,18 @@ var LOCAL_SPEC = {
         def: 200,
         onChange: "updateCompositorLayout"
     },
+    hyprlandWobbleDamping: {
+        def: 12,
+        onChange: "updateCompositorLayout"
+    },
+    hyprlandWobbleMass: {
+        def: 100,
+        onChange: "updateCompositorLayout"
+    },
+    hyprlandWobbleMesh: {
+        def: 12,
+        onChange: "updateCompositorLayout"
+    },
     hyprlandMotionBlurEnabled: {
         def: false,
         onChange: "updateCompositorLayout"
@@ -424,6 +436,10 @@ var LOCAL_SPEC = {
         onChange: "updateCompositorInput"
     },
     touchpadScrollFactor: {
+        def: 1.0,
+        onChange: "updateCompositorInput"
+    },
+    touchpadPinchSensitivity: {
         def: 1.0,
         onChange: "updateCompositorInput"
     },
@@ -763,6 +779,18 @@ var LOCAL_SPEC = {
             {
                 id: "youtubemusic",
                 enabled: true
+            }
+        ]
+    },
+    weatherProviders: {
+        def: [
+            {
+                id: "openmeteo",
+                enabled: true
+            },
+            {
+                id: "metno",
+                enabled: false
             }
         ]
     },
@@ -1168,6 +1196,9 @@ var LOCAL_SPEC = {
     lockBeforeSuspend: {
         def: false
     },
+    keepAwakeBlocksSleep: {
+        def: false
+    },
     loginctlLockIntegration: {
         def: true
     },
@@ -1418,6 +1449,12 @@ var LOCAL_SPEC = {
     notificationHistoryEnabled: {
         def: true
     },
+    notificationLeadingShortcut: {
+        def: "dnd"
+    },
+    notificationTrailingShortcut: {
+        def: "history"
+    },
     notificationHistoryMaxCount: {
         def: 50
     },
@@ -1483,6 +1520,9 @@ var LOCAL_SPEC = {
     },
     osdKeyboardLayoutEnabled: {
         def: false
+    },
+    osdInputMethodEnabled: {
+        def: true
     },
     osdTouchpadEnabled: {
         def: true

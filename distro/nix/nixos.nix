@@ -34,11 +34,13 @@ in
   };
   config = lib.mkIf cfg.enable {
     systemd.user.services.dms = lib.mkIf cfg.systemd.enable {
-      description = "Dux Shell";
+      description = "Dux Modular Shell";
       path = lib.mkForce [ ];
 
       partOf = [ cfg.systemd.target ];
       after = [ cfg.systemd.target ];
+      # Readiness waits for the tray host, so tray apps ordered after tray.target find it.
+      before = [ "tray.target" ];
       wantedBy = [ cfg.systemd.target ];
       restartIfChanged = cfg.systemd.restartIfChanged;
 
