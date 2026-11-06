@@ -594,6 +594,7 @@ BasePill {
         id: collapsedArrowComponent
 
         Item {
+            id: collapsedArrow
             property real extent: root.collapsedArrowShown ? root.trayItemSize : 0
             width: root.isVerticalOrientation ? root.barThickness : extent
             height: root.isVerticalOrientation ? extent : root.barThickness
@@ -623,13 +624,13 @@ BasePill {
                 anchors.centerIn: parent
                 style: BarMetrics.widgetStyle(root.barConfig)
                 pressed: collapsedArrowArea.pressed
-                color: Theme.withAlpha(Theme.onSurface, collapsedArrowArea.pressed ? Theme.stateLayerPressed : collapsedArrowArea.containsMouse ? Theme.stateLayerHover : 0)
+                color: Theme.blend(Theme.secondaryContainer, Theme.onSecondaryContainer, collapsedArrowArea.pressed ? Theme.stateLayerDrag + Theme.stateLayerPressed : collapsedArrowArea.containsMouse ? Theme.stateLayerDrag : 0)
 
                 DIcon {
                     anchors.centerIn: parent
                     name: root.collapsedArrowIcon
                     size: root.trayIconSize
-                    color: Theme.widgetTextColor
+                    color: Theme.onSecondaryContainer
                 }
 
                 DRipple {
@@ -642,9 +643,48 @@ BasePill {
                     anchors.fill: parent
                     hoverEnabled: true
                     cursorShape: Qt.PointingHandCursor
-                    onContainsMouseChanged: root.expanderHovered(collapsedArrowArea.containsMouse)
+                    onContainsMouseChanged: {
+                        root.expanderHovered(collapsedArrowArea.containsMouse);
+                        if (collapsedArrowArea.containsMouse)
+                            collapsedArrow.showTooltip();
+                        else
+                            collapsedArrowTooltip.active = false;
+                    }
                     onPressed: mouse => collapsedArrowRipple.trigger(mouse.x, mouse.y)
                     onClicked: root.expandRequested()
+                }
+            }
+
+            Loader {
+                id: collapsedArrowTooltip
+                active: false
+                sourceComponent: DTooltip {}
+            }
+
+            function showTooltip() {
+                const screen = root.parentScreen;
+                collapsedArrowTooltip.active = true;
+                const tooltip = collapsedArrowTooltip.item as DTooltip;
+                if (!tooltip || !screen)
+                    return;
+                const text = I18n.tr("Show all tray icons", "tooltip on the arrow that expands a collapsed dock's tray");
+                tooltip.text = text;
+                // A dock's layer window does not start at the screen edge, so map through its surface.
+                const corner = BarWidgetService.registrationForItem(root)?.context?.surface?.screenPoint(collapsedArrow, 0, 0);
+                if (!corner)
+                    return;
+                switch (root.axis?.edge) {
+                case "left":
+                    tooltip.show(text, corner.x + collapsedArrow.width + Theme.spacingS, corner.y + collapsedArrow.height / 2, screen, true, false);
+                    return;
+                case "right":
+                    tooltip.show(text, corner.x - Theme.spacingS, corner.y + collapsedArrow.height / 2, screen, false, true);
+                    return;
+                case "top":
+                    tooltip.show(text, corner.x + collapsedArrow.width / 2, corner.y + collapsedArrow.height + Theme.spacingS, screen, false, false);
+                    return;
+                default:
+                    tooltip.show(text, corner.x + collapsedArrow.width / 2, corner.y - Theme.spacingS - tooltip.implicitHeight, screen, false, false);
                 }
             }
         }
