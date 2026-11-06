@@ -104,6 +104,10 @@ QtObject {
         if (kind === "dock" && host.expand)
             host.expand();
     }
+    function collapseExpanded() {
+        if (kind === "dock" && host.collapse)
+            host.collapse();
+    }
     function hoverCollapsedExpander(hovered) {
         if (kind === "dock" && host.hoverExpander)
             host.hoverExpander(hovered);

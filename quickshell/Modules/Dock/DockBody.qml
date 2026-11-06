@@ -419,6 +419,12 @@ FocusScope {
         revealSticky = true;
         expandRequested = true;
     }
+    function collapse() {
+        revealWait.stop();
+        revealHold.stop();
+        revealSticky = false;
+        expandRequested = false;
+    }
     // Over the tray arrow of a collapsed dock, which clicking expands at once.
     property bool expanderHovered: false
     function hoverExpander(hovered) {
