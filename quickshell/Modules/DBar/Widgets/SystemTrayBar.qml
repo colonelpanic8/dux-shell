@@ -42,6 +42,7 @@ BasePill {
     readonly property bool collapsible: barConfig?.autoHideStyle === "peek"
     property bool collapsed: false
     signal expandRequested
+    signal expanderHovered(bool hovered)
     readonly property var pinnedTrayKeys: {
         const keys = SettingsData.widgetOption("systemTray", widgetData, "trayPinnedItems");
         return Array.isArray(keys) ? keys : [];
@@ -659,6 +660,7 @@ BasePill {
                     anchors.fill: parent
                     hoverEnabled: true
                     cursorShape: Qt.PointingHandCursor
+                    onContainsMouseChanged: root.expanderHovered(collapsedArrowArea.containsMouse)
                     onPressed: mouse => collapsedArrowRipple.trigger(mouse.x, mouse.y)
                     onClicked: root.expandRequested()
                 }

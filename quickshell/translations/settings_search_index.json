@@ -5820,6 +5820,26 @@
     "conditionKey": "dockEnabled"
   },
   {
+    "section": "dockPeekExpandOn",
+    "label": "Expand on",
+    "tabIndex": 5,
+    "category": "General",
+    "keywords": [
+      "arrow",
+      "click",
+      "dock",
+      "expand",
+      "general",
+      "hover",
+      "launcher bar",
+      "panel",
+      "peek",
+      "taskbar",
+      "tray"
+    ],
+    "parentLabel": "Dock"
+  },
+  {
     "section": "dockHideDelay",
     "label": "Hide delay",
     "tabIndex": 5,
