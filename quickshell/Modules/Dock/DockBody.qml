@@ -421,9 +421,9 @@ FocusScope {
     readonly property bool pointerOnExpander: {
         if (!dockMouseArea.containsMouse)
             return false;
-        if (!peeks || config.peekExpandOn === "dockHover")
+        if (!peeks)
             return true;
-        return config.peekExpandOn === "arrowHover" && expanderHovered;
+        return TrayPlacementService.expandOnHover && expanderHovered;
     }
     onPointerOnExpanderChanged: {
         if (!pointerOnExpander) {
