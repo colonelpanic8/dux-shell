@@ -52,9 +52,14 @@ BasePill {
     readonly property bool collapseActive: surfaceKind === "dock" ? collapsible && TrayPlacementService.collapseEnabled : collapsesInBar
     // Expanded, the same arrow points back and collapses the tray at once.
     readonly property bool collapsedArrowShown: collapseActive && collapsedArrowNeeded
-    // The bar reserves only the collapsed tray; expanded, it draws over its neighbours toward the inner end.
     readonly property int collapsedSlots: displayedMainBarItems.filter((entry, index) => keptWhenCollapsed(entry.key, index)).length + (collapsedArrowNeeded ? 1 : 0) + (quickMenuShown ? 1 : 0)
-    reservedPrimarySize: collapsesInBar && allTrayItems.length > 0 ? Theme.snap(collapsedSlots * trayItemSize + Math.max(0, collapsedSlots - 1) * configuredIconSpacing + horizontalPadding * 2, dpr) : -1
+    readonly property bool sizedAsCollapsible: collapsesInBar && allTrayItems.length > 0
+    // The expanded tray pushes its neighbours aside, but the bar only ever owes it the collapsed size: where the
+    // expanded tray does not fit, the rest draws over the neighbours toward the inner end instead of overflowing them.
+    readonly property real naturalPrimarySize: isVerticalOrientation ? visualHeight : visualWidth
+    readonly property real minimumPrimarySize: sizedAsCollapsible ? Math.min(naturalPrimarySize, Theme.snap(collapsedSlots * trayItemSize + Math.max(0, collapsedSlots - 1) * configuredIconSpacing + horizontalPadding * 2, dpr)) : naturalPrimarySize
+    property real allottedPrimarySize: 0
+    reservedPrimarySize: sizedAsCollapsible ? Math.min(naturalPrimarySize, Math.max(minimumPrimarySize, allottedPrimarySize > 0 ? allottedPrimarySize : naturalPrimarySize)) : -1
     overlayAlign: innerEndLeads ? 1 : 0
     // A translucent fill would show the covered neighbours through the overlay.
     fillColor: overlaying ? Theme.withAlpha(Theme.widgetBaseBackgroundColor, 1) : defaultFillColor
