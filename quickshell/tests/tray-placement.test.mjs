@@ -84,3 +84,33 @@ test("routing facts stay per bar, so one bar coming back does not clear another"
     context.setBarRouted("DP-1", "top", false);
     assert.deepEqual(Object.keys(context.routedBars), ["DP-1\nside"]);
 });
+
+const ipc = readFileSync(new URL("../DMSShellIPC.qml", import.meta.url), "utf8");
+
+function pinShell(stored) {
+    const SessionData = {
+        trayPinnedItems: stored,
+        set(key, value) {
+            this[key] = value;
+        }
+    };
+    const TrayPlacementService = vm.createContext({ SessionData, TrayPlacement: placement });
+    Object.defineProperty(TrayPlacementService, "pinnedKeys", { get: () => placement.pins(SessionData.trayPinnedItems) });
+    for (const name of ["setPinned", "togglePin"])
+        vm.runInContext(service.match(new RegExp(`^    function ${name}\\([^\\n]*\\) \\{\\n[\\s\\S]*?^    \\}`, "m"))[0], TrayPlacementService);
+    const handler = vm.createContext({ TrayPlacementService });
+    for (const name of ["pins", "pin", "unpin", "togglePin"]) {
+        const match = ipc.match(new RegExp(`^        function ${name}\\(([^)]*)\\): string \\{\\n[\\s\\S]*?^        \\}`, "m"));
+        assert.ok(match, name);
+        vm.runInContext(match[0].replace(/\((.*?)\): string \{/, (_, params) => "(" + params.replace(/: \w+/g, "") + ") {"), handler);
+    }
+    return { handler, SessionData };
+}
+
+test("ipc pins edit the one session list and refuse an empty key", () => {
+    const { handler, SessionData } = pinShell(["a", ""]);
+    assert.deepEqual([handler.pin("b"), handler.togglePin("a"), handler.unpin("missing"), handler.pins()], ["true", "false", "false", "b"]);
+    assert.deepEqual(plain(SessionData.trayPinnedItems), ["b"]);
+    assert.deepEqual([handler.pin(""), handler.togglePin(""), handler.unpin("")], Array(3).fill("ERROR: No tray key specified"));
+    assert.deepEqual(plain(SessionData.trayPinnedItems), ["b"]);
+});
