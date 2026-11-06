@@ -627,6 +627,9 @@ var LOCAL_SPEC = {
     systemTrayPlacementToggle: {
         def: true
     },
+    trayCollapseDefault: {
+        def: true
+    },
     systemTrayDefaultPlacement: {
         def: "bar"
     },

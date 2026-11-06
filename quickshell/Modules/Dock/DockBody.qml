@@ -492,7 +492,7 @@ FocusScope {
         if (hiddenForFullscreen || !dock.config.enabled)
             return "hidden";
 
-        return DockConfig.visibility(!hoverOrActive && (smartAutoHideActive ? shouldHideForWindows : autoHide), dock.shownConfig);
+        return DockConfig.visibility(!hoverOrActive && (smartAutoHideActive ? shouldHideForWindows : autoHide), dock.shownConfig, TrayPlacementService.collapseEnabled);
     }
     readonly property bool reveal: visibilityState === "expanded"
     readonly property bool collapsed: visibilityState === "collapsed"
