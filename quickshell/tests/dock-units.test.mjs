@@ -115,3 +115,42 @@ test("settings reorder follows the saved dock order and pins travel with the wid
         assert.deepEqual(plain(config.widgetOrder(result.widgets, result.order)), result.widgets.map(widget => widget.id));
     }
 });
+
+test("taskbarAlign migrates to align for taskbars only and align offsets are bounded", () => {
+    const pick = dock => [dock.align, dock.alignOffset, "taskbarAlign" in dock];
+    const docks = plain(config.normalize([
+        { id: "bar", mode: "taskbar", taskbarAlign: "end" },
+        { id: "compact", taskbarAlign: "end", alignOffset: -5 },
+        { id: "set", mode: "taskbar", taskbarAlign: "end", align: "start", alignOffset: 9000 },
+        { id: "junk", align: "middle", alignOffset: "12.6" }
+    ]));
+    assert.deepEqual(docks.map(pick), [["end", 0, false], ["center", 0, false], ["start", 4096, false], ["center", 13, false]]);
+});
+
+test("aligned bodies keep their gaps and offset from the aligned end", () => {
+    assert.equal(config.alignedStart("start", 10, 1000, 200, 6, 4), 16);
+    assert.equal(config.alignedStart("end", 10, 1000, 200, 6, 4), 786);
+    assert.equal(config.alignedStart("center", 10, 1000, 200, 6, 4), 401);
+});
+
+test("peek keys are bounded and only widgets shown when collapsed carry the flag", () => {
+    const [dock] = plain(config.normalize([{ id: "d", autoHideStyle: "fade", peekOpacity: 3, revealDelay: -1, hideDelay: 9999, widgets: [{ id: "t", widgetId: "systemTray", showWhenCollapsed: "yes" }, { id: "a", widgetId: "appsDock", showWhenCollapsed: true }] }]));
+    assert.deepEqual([dock.autoHideStyle, dock.peekOpacity, dock.revealDelay, dock.hideDelay], ["slide", 1, 0, 5000]);
+    assert.deepEqual(dock.widgets.map(widget => [widget.id, "showWhenCollapsed" in widget]), [["t", false], ["d_launcher", false], ["a", true], ["d_trash", false]]);
+    const items = config.surfaceItems(dock.widgets, apps, []);
+    assert.deepEqual(plain(items.filter(item => item.showWhenCollapsed).map(item => item.id)), ["a:pinned_a", "a:pinned_b", "a:separator_ungrouped", "a:niri:4"]);
+});
+
+test("an auto-hidden dock collapses only in peek style with something to show", () => {
+    const dock = (style, widgets) => ({ autoHideStyle: style, widgets });
+    const tray = { widgetId: "systemTray", showWhenCollapsed: true };
+    assert.equal(config.visibility(false, dock("peek", [tray])), "expanded");
+    assert.equal(config.visibility(true, dock("peek", [tray])), "collapsed");
+    assert.equal(config.visibility(true, dock("slide", [tray])), "hidden");
+    assert.equal(config.visibility(true, dock("peek", [{ ...tray, enabled: false }, { widgetId: "clock" }])), "hidden");
+});
+
+test("a peek dock expands from its arrow on hover unless told otherwise", () => {
+    const docks = plain(config.normalize([{ id: "unset" }, { id: "click", peekExpandOn: "arrowClick" }, { id: "dock", peekExpandOn: "dockHover" }, { id: "junk", peekExpandOn: "hover" }]));
+    assert.deepEqual(docks.map(dock => dock.peekExpandOn), ["arrowHover", "arrowClick", "dockHover", "arrowHover"]);
+});
