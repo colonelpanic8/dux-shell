@@ -1122,6 +1122,7 @@ BasePill {
 
                                         Rectangle {
                                             anchors.fill: parent
+                                            anchors.margins: -Theme.spacingXXS
                                             visible: (rowAppIcon.visible || rowSteamIcon.visible || modelData.isQuickshell) && appHighlightActive
                                             color: "transparent"
                                             radius: Math.min(Theme.cornerRadiusS, width / 2, height / 2)
@@ -1271,6 +1272,7 @@ BasePill {
 
                                         Rectangle {
                                             anchors.fill: parent
+                                            anchors.margins: -Theme.spacingXXS
                                             visible: (colAppIcon.visible || colSteamIcon.visible || modelData.isQuickshell) && appHighlightActive
                                             color: "transparent"
                                             radius: Math.min(Theme.cornerRadiusS, width / 2, height / 2)
