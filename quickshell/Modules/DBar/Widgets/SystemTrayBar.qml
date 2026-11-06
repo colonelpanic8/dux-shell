@@ -28,6 +28,14 @@ BasePill {
     property int configuredMaxVisibleItems: SettingsData.widgetOption("systemTray", widgetData, "trayMaxVisibleItems")
     property real configuredIconSpacing: Math.max(0, SettingsData.widgetOption("systemTray", widgetData, "trayIconSpacing"))
     property real sectionAvailablePrimarySize: 0
+    // Only docks collapse; a collapsed tray shows its pinned items, or everything when none are pinned.
+    property bool collapsed: false
+    readonly property var pinnedTrayKeys: {
+        const keys = SettingsData.widgetOption("systemTray", widgetData, "trayPinnedItems");
+        return Array.isArray(keys) ? keys : [];
+    }
+    readonly property bool pinnedOnly: collapsed && pinnedTrayKeys.length > 0
+    readonly property bool interactionActive: menuOpen || trayMenuState.showMenu
     readonly property var hiddenTrayIds: TrayMenuManager.envHiddenTrayIds
     readonly property var allTrayItems: TrayMenuManager.filterEnvHidden(SystemTray.items.values)
     function getTrayItemKey(item) {
@@ -148,7 +156,7 @@ BasePill {
     }
     readonly property bool edgeFirst: !useOverflowPopup && section === "right"
     readonly property var mainBarItemsRaw: {
-        const items = visibleSortedTrayItems.slice(0, automaticVisibleItemLimit);
+        const items = pinnedOnly ? allSortedTrayItems.filter(item => pinnedTrayKeys.includes(getTrayItemKey(item))) : visibleSortedTrayItems.slice(0, automaticVisibleItemLimit);
         return edgeFirst ? items.reverse() : items;
     }
     readonly property var mainBarItems: mainBarItemsRaw.map((item, idx) => ({
@@ -328,7 +336,7 @@ BasePill {
     property int popupDraggedIndex: -1
     property int popupDropTargetIndex: -1
     property bool suppressShiftAnimation: false
-    readonly property bool hasHiddenItems: hiddenBarItems.length > 0
+    readonly property bool hasHiddenItems: !pinnedOnly && hiddenBarItems.length > 0
     readonly property bool inlineExpanded: hasHiddenItems && !useOverflowPopup && menuOpen
     visible: allTrayItems.length > 0
     opacity: allTrayItems.length > 0 ? 1 : 0
