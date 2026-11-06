@@ -13,7 +13,6 @@ Column {
     readonly property bool inlineExpansion: page.value("trayUseInlineExpansion")
     readonly property bool autoOverflow: page.value("trayAutoOverflow")
     readonly property bool trayTinted: ["primary", "secondary"].includes(SettingsData.systemTrayIconTintMode || "none")
-    readonly property var pinnedKeys: root.page.value("trayPinnedItems") ?? []
     readonly property bool dockHosted: root.page?.dockHosted ?? false
     readonly property bool collapsesInBar: !root.dockHosted && root.page.value("trayCollapseInBar") === true
     // Live items in tray order, then pinned keys whose app is not running so they can still be unpinned.
@@ -25,7 +24,7 @@ Column {
                     title: item.tooltipTitle || item.title || item.id
                 }));
         const keys = rows.map(row => row.key);
-        return rows.concat(pinnedKeys.filter(key => !keys.includes(key)).map(key => ({
+        return rows.concat(TrayPlacementService.pinnedKeys.filter(key => !keys.includes(key)).map(key => ({
                     key,
                     title: key
                 }))).filter(row => row.key !== "");
@@ -230,6 +229,13 @@ Column {
             onSliderValueChanged: newValue => root.page.set("trayCollapsedItemCount", newValue)
         }
 
+        SettingsNoteRow {
+            noteIconName: "info"
+            tint: Theme.surfaceVariantText
+            tintBackground: Theme.surfaceVariantAlpha
+            text: I18n.tr("Pins apply to the bar tray and every dock tray. A tray icon's menu pins it too.", "system tray settings: note above the pinned icon checklist")
+        }
+
         Repeater {
             model: root.pinRows
 
@@ -239,8 +245,8 @@ Column {
 
                 text: pinRow.modelData.title
                 description: pinRow.modelData.title === pinRow.modelData.key ? "" : pinRow.modelData.key
-                checked: root.pinnedKeys.includes(pinRow.modelData.key)
-                onToggled: checked => root.page.set("trayPinnedItems", checked ? root.pinnedKeys.concat([pinRow.modelData.key]) : root.pinnedKeys.filter(key => key !== pinRow.modelData.key))
+                checked: TrayPlacementService.pinnedKeys.includes(pinRow.modelData.key)
+                onToggled: checked => TrayPlacementService.setPinned(pinRow.modelData.key, checked)
             }
         }
     }

@@ -170,6 +170,9 @@ var LOCAL_SPEC = {
     trayCollapseEnabled: {
         def: null
     },
+    trayPinnedItems: {
+        def: []
+    },
     recentColors: {
         def: []
     },
