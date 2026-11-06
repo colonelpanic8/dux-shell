@@ -5035,6 +5035,68 @@
     "conditionKey": "dockEnabled"
   },
   {
+    "section": "dockPeekExpandOn",
+    "label": "Expand on",
+    "tabIndex": 5,
+    "category": "General",
+    "keywords": [
+      "arrow",
+      "click",
+      "dock",
+      "expand",
+      "general",
+      "hover",
+      "launcher bar",
+      "panel",
+      "peek",
+      "taskbar",
+      "tray"
+    ],
+    "parentLabel": "Dock",
+    "conditionKey": "dockEnabled"
+  },
+  {
+    "section": "dockHideDelay",
+    "label": "Hide delay",
+    "tabIndex": 5,
+    "category": "General",
+    "keywords": [
+      "autohide",
+      "delay",
+      "dock",
+      "general",
+      "hide",
+      "launcher bar",
+      "panel",
+      "taskbar"
+    ],
+    "parentLabel": "Dock",
+    "conditionKey": "dockEnabled"
+  },
+  {
+    "section": "dockAutoHideStyle",
+    "label": "Hide style",
+    "tabIndex": 5,
+    "category": "General",
+    "keywords": [
+      "autohide",
+      "collapse",
+      "corner",
+      "dock",
+      "general",
+      "hide",
+      "launcher bar",
+      "panel",
+      "peek",
+      "slide",
+      "style",
+      "taskbar",
+      "tray"
+    ],
+    "parentLabel": "Dock",
+    "conditionKey": "dockEnabled"
+  },
+  {
     "section": "dockLayout",
     "label": "Layout",
     "tabIndex": 5,
@@ -5093,6 +5155,63 @@
     ],
     "parentLabel": "Dock",
     "icon": "mouse"
+  },
+  {
+    "section": "dockAlignOffset",
+    "label": "Offset",
+    "tabIndex": 5,
+    "category": "General",
+    "keywords": [
+      "alignment",
+      "corner",
+      "dock",
+      "general",
+      "launcher bar",
+      "offset",
+      "panel",
+      "position",
+      "taskbar"
+    ],
+    "parentLabel": "Dock"
+  },
+  {
+    "section": "dockPeekOpacity",
+    "label": "Opacity",
+    "tabIndex": 5,
+    "category": "General",
+    "keywords": [
+      "collapsed",
+      "dock",
+      "general",
+      "launcher bar",
+      "opacity",
+      "panel",
+      "peek",
+      "taskbar",
+      "transparency"
+    ],
+    "parentLabel": "Dock",
+    "conditionKey": "dockEnabled"
+  },
+  {
+    "section": "dockRevealDelay",
+    "label": "Open delay",
+    "tabIndex": 5,
+    "category": "General",
+    "keywords": [
+      "autohide",
+      "delay",
+      "dock",
+      "general",
+      "hover",
+      "launcher bar",
+      "open",
+      "panel",
+      "reveal",
+      "taskbar"
+    ],
+    "parentLabel": "Dock",
+    "conditionKey": "dockEnabled"
   },
   {
     "section": "dockEditOnRightClick",
@@ -10814,6 +10933,14 @@
     "optionFile": "AppsDockOptions.qml"
   },
   {
+    "section": "barWidgetOption:SystemTrayOptions.qml:10",
+    "label": "Leading icons",
+    "tabIndex": 22,
+    "keywords": [],
+    "runtimeType": "barWidgetOption",
+    "optionFile": "SystemTrayOptions.qml"
+  },
+  {
     "section": "barWidgetOption:IslandOptions.qml:24",
     "label": "Lyrics",
     "tabIndex": 22,
@@ -11180,6 +11307,14 @@
     "keywords": [],
     "runtimeType": "barWidgetOption",
     "optionFile": "SystemMonitorOptions.qml"
+  },
+  {
+    "section": "barWidgetOption:SystemTrayOptions.qml:9",
+    "label": "Show when collapsed",
+    "tabIndex": 22,
+    "keywords": [],
+    "runtimeType": "barWidgetOption",
+    "optionFile": "SystemTrayOptions.qml"
   },
   {
     "section": "barWidgetOption:SystemTrayOptions.qml:2",
