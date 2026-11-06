@@ -126,7 +126,7 @@ Item {
         return SettingsData.islandSetting(root.barConfig, key);
     }
 
-    readonly property var islandMetrics: Resolver.islandMetrics(SettingsData.islandSettings(root.barConfig), SettingsData.islandDefaultsFor(root.barConfig))
+    readonly property var islandMetrics: Resolver.islandMetrics(SettingsData.islandSettings(root.barConfig), SettingsData.islandDefaultsFor(root.barConfig), root.screen)
     readonly property bool freeMode: SettingsData.islandFreePlacement(root.barConfig)
     readonly property bool dotMode: SettingsData.isDotBarConfig(root.barConfig)
     readonly property real dotSize: Math.max(24, Math.min(160, root.setting("islandFreeSize")))
