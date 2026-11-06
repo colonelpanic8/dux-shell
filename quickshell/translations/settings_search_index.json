@@ -10819,6 +10819,14 @@
     "optionFile": "AppsDockOptions.qml"
   },
   {
+    "section": "barWidgetOption:SystemTrayOptions.qml:10",
+    "label": "Leading icons",
+    "tabIndex": 22,
+    "keywords": [],
+    "runtimeType": "barWidgetOption",
+    "optionFile": "SystemTrayOptions.qml"
+  },
+  {
     "section": "barWidgetOption:IslandOptions.qml:24",
     "label": "Lyrics",
     "tabIndex": 22,
