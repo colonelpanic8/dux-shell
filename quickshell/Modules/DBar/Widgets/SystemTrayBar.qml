@@ -31,8 +31,7 @@ BasePill {
     property string surfaceKind: "bar"
     readonly property var placement: TrayPlacementService.forScreen(parentScreen?.name ?? "")
     readonly property bool placementToggleAvailable: SettingsData.systemTrayPlacementToggle && placement.toggle
-    // Shares the inner end with the expand arrow: the arrow while collapsed, this button otherwise.
-    readonly property bool placementToggleShown: placementToggleAvailable && !collapsedArrowShown
+    readonly property bool placementToggleShown: placementToggleAvailable
     // The end facing the middle of the screen holds the move button and the expand arrow.
     readonly property bool innerEndLeads: surfaceKind === "dock" ? barConfig?.align === "end" : section !== "left"
     readonly property bool collapsesInBar: surfaceKind === "bar" && SettingsData.widgetOption("systemTray", widgetData, "trayCollapseInBar") === true
@@ -54,7 +53,7 @@ BasePill {
     readonly property bool collapsedArrowNeeded: hiddenBarItems.length > 0 || displayedMainBarItems.some((entry, index) => !keptWhenCollapsed(entry.key, index))
     readonly property bool collapsedArrowShown: collapsed && collapsedArrowNeeded
     // The bar reserves only the collapsed tray; expanded, it draws over its neighbours toward the inner end.
-    readonly property int collapsedSlots: displayedMainBarItems.filter((entry, index) => keptWhenCollapsed(entry.key, index)).length + (collapsedArrowNeeded || placementToggleAvailable ? 1 : 0)
+    readonly property int collapsedSlots: displayedMainBarItems.filter((entry, index) => keptWhenCollapsed(entry.key, index)).length + (collapsedArrowNeeded ? 1 : 0) + (placementToggleAvailable ? 1 : 0)
     reservedPrimarySize: collapsesInBar && allTrayItems.length > 0 ? Theme.snap(collapsedSlots * trayItemSize + Math.max(0, collapsedSlots - 1) * configuredIconSpacing + horizontalPadding * 2, dpr) : -1
     overlayAlign: innerEndLeads ? 1 : 0
     // A translucent fill would show the covered neighbours through the overlay.
