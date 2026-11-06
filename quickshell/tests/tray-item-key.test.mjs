@@ -36,3 +36,13 @@ test("assign gives each id-less notifier its own key and numbers true duplicates
     assert.deepEqual(pool.map(item => trayKey.assign(item, pool, keys)), ["org.Github.Notifications", "org.Gmail.Notifications", "org.Gitea.Notifications", "icon:chat", "icon:chat::1", "app", "app::1"]);
     assert.equal(trayKey.assign(sameIconB, [sameIconB], keys), "icon:chat::1");
 });
+
+test("assign re-keys an item whose id loads after its first key, but not when only its icon changes", () => {
+    const late = { id: "", watcherAddress: "org.kde.StatusNotifierItem-11-1", icon: "image://icon/net-0" };
+    const keys = new Map();
+    assert.equal(trayKey.assign(late, [late], keys), "icon:net-0");
+    late.icon = "image://icon/net-75";
+    assert.equal(trayKey.assign(late, [late], keys), "icon:net-0");
+    late.id = "nm-applet";
+    assert.equal(trayKey.assign(late, [late], keys), "nm-applet");
+});

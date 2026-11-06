@@ -38,8 +38,10 @@ function assign(item, pool, keyByItem) {
     const base = baseKey(item);
     if (!base)
         return "";
-    if (keyByItem.has(item))
-        return keyByItem.get(item);
+    // An item can be keyed before its id loads; re-key it once, when the id arrives.
+    const cached = keyByItem.get(item);
+    if (cached !== undefined && (!item.id || cached === item.id || cached.startsWith(item.id + "::")))
+        return cached;
     const taken = new Set();
     for (const live of pool) {
         if (live !== item && keyByItem.has(live) && baseKey(live) === base)
