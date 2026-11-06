@@ -144,7 +144,7 @@ Item {
                 unit: "%"
                 minimum: 0
                 maximum: 100
-                value: Math.round((dock.config?.peekOpacity ?? 0.6) * 100)
+                value: Math.round((dock.config?.peekOpacity ?? 1) * 100)
                 onSliderDragFinished: finalValue => dock.setOption("peekOpacity", finalValue / 100)
             }
 

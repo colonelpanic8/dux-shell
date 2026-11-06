@@ -32,7 +32,7 @@ function create(id, name) {
         autoHide: false,
         smartAutoHide: false,
         autoHideStyle: "slide",
-        peekOpacity: 0.6,
+        peekOpacity: 1,
         revealDelay: 0,
         hideDelay: 250,
         useOverlayLayer: false,
