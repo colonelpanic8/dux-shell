@@ -2264,6 +2264,19 @@ Item {
             return String(TrayPlacementService.toggleCollapse());
         }
 
+        function expandOnHover(): string {
+            return String(TrayPlacementService.expandOnHover);
+        }
+
+        function setExpandOnHover(enabled: bool): string {
+            TrayPlacementService.setExpandOnHover(enabled);
+            return String(TrayPlacementService.expandOnHover);
+        }
+
+        function toggleExpandOnHover(): string {
+            return String(TrayPlacementService.toggleExpandOnHover());
+        }
+
         function pins(): string {
             return TrayPlacementService.pinnedKeys.join("\n");
         }

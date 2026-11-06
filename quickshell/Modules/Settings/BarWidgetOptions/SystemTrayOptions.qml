@@ -199,15 +199,6 @@ Column {
             checked: root.collapsesInBar
             onToggled: checked => root.page.set("trayCollapseInBar", checked)
         }
-
-        SettingsButtonGroupRow {
-            text: I18n.tr("Expand on", "dock settings: what expands a collapsed peek dock")
-            visible: root.collapsesInBar
-            model: [I18n.tr("Arrow hover", "dock peek expand trigger: pointer over the expand arrow"), I18n.tr("Arrow click", "dock peek expand trigger: clicking the expand arrow"), I18n.tr("Tray hover", "bar tray expand trigger: pointer anywhere over the tray")]
-            values: ["arrowHover", "arrowClick", "trayHover"]
-            value: root.page.value("trayExpandOn")
-            onValueSelected: value => root.page.set("trayExpandOn", value)
-        }
     }
 
     SettingsCard {

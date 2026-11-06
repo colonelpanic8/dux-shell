@@ -5820,26 +5820,6 @@
     "conditionKey": "dockEnabled"
   },
   {
-    "section": "dockPeekExpandOn",
-    "label": "Expand on",
-    "tabIndex": 5,
-    "category": "General",
-    "keywords": [
-      "arrow",
-      "click",
-      "dock",
-      "expand",
-      "general",
-      "hover",
-      "launcher bar",
-      "panel",
-      "peek",
-      "taskbar",
-      "tray"
-    ],
-    "parentLabel": "Dock"
-  },
-  {
     "section": "dockHideDelay",
     "label": "Hide delay",
     "tabIndex": 5,
@@ -11748,14 +11728,6 @@
     "optionFile": "IslandOptions.qml"
   },
   {
-    "section": "barWidgetOption:SystemTrayOptions.qml:18",
-    "label": "Expand on",
-    "tabIndex": 22,
-    "keywords": [],
-    "runtimeType": "barWidgetOption",
-    "optionFile": "SystemTrayOptions.qml"
-  },
-  {
     "section": "barWidgetOption:IslandOptions.qml:32",
     "label": "Expanded background",
     "tabIndex": 22,
@@ -12045,7 +12017,7 @@
     "optionFile": "AppsDockOptions.qml"
   },
   {
-    "section": "barWidgetOption:SystemTrayOptions.qml:20",
+    "section": "barWidgetOption:SystemTrayOptions.qml:19",
     "label": "Leading icons",
     "tabIndex": 22,
     "keywords": [],
@@ -12309,7 +12281,7 @@
     "optionFile": "IslandOptions.qml"
   },
   {
-    "section": "barWidgetOption:SystemTrayOptions.qml:21",
+    "section": "barWidgetOption:SystemTrayOptions.qml:20",
     "label": "Pins apply to the bar tray and every dock tray. A tray icon's menu pins it too.",
     "tabIndex": 22,
     "keywords": [],
@@ -12549,7 +12521,7 @@
     "optionFile": "SystemTrayOptions.qml"
   },
   {
-    "section": "barWidgetOption:SystemTrayOptions.qml:19",
+    "section": "barWidgetOption:SystemTrayOptions.qml:18",
     "label": "Show when collapsed",
     "tabIndex": 22,
     "keywords": [],

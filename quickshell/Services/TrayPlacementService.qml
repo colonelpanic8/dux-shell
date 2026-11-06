@@ -10,7 +10,9 @@ Singleton {
     id: root
 
     readonly property string placement: TrayPlacement.normalize(SessionData.systemTrayPlacement, SettingsData.systemTrayDefaultPlacement)
-    readonly property bool collapseEnabled: TrayPlacement.collapseEnabled(SessionData.trayCollapseEnabled, SettingsData.trayCollapseDefault)
+    readonly property bool collapseEnabled: TrayPlacement.sessionSwitch(SessionData.trayCollapseEnabled, SettingsData.trayCollapseDefault)
+    // Otherwise only clicking the collapsed tray's arrow expands it.
+    readonly property bool expandOnHover: TrayPlacement.sessionSwitch(SessionData.trayExpandOnHover, SettingsData.trayExpandOnHoverDefault)
     readonly property var pinnedKeys: TrayPlacement.pins(SessionData.trayPinnedItems)
     // Keyed by screen and bar, so bars sharing a screen never overwrite each other.
     property var routedBars: ({})
@@ -56,6 +58,15 @@ Singleton {
     function toggleCollapse() {
         setCollapseEnabled(!root.collapseEnabled);
         return root.collapseEnabled;
+    }
+
+    function setExpandOnHover(enabled) {
+        SessionData.set("trayExpandOnHover", enabled === true);
+    }
+
+    function toggleExpandOnHover() {
+        setExpandOnHover(!root.expandOnHover);
+        return root.expandOnHover;
     }
 
     function setPinned(key, pinned) {
