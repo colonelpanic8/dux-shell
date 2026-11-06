@@ -43,6 +43,7 @@ Item {
 
     visible: active && widgetLoader.widgetEnabled && !detached
     opacity: sectionContext.editing && itemData.enabled === false ? BarMetrics.hiddenWidgetOpacity : 1
+    z: widgetItem?.overlaying ? 1 : 0
     width: participates ? (sectionContext.isVertical ? sectionContext.width : itemWidth) : 0
     height: participates ? itemHeight : 0
 
