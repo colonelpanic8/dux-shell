@@ -187,7 +187,8 @@ FocusScope {
             sizes.push(repeater.itemAt(i)?.naturalSize ?? 0);
         return sizes;
     }
-    readonly property var flexible: model.map(item => item.widgetId === "flexibleSpacer" && item.enabled !== false)
+    readonly property bool collapsed: surfaceContext.collapsed ?? false
+    readonly property var flexible: model.map(item => item.widgetId === "flexibleSpacer" && item.enabled !== false && (!collapsed || item.showWhenCollapsed === true))
     readonly property var participating: sizes.map((size, index) => size > 0 || flexible[index])
     readonly property real gapSpace: Math.max(0, participating.filter(Boolean).length - 1) * spacing
     readonly property var allocatedSizes: DockConfig.allocation(sizes, flexible, fillAvailable ? Math.max(0, availableSize - gapSpace) : 0, 0)
@@ -326,7 +327,8 @@ FocusScope {
                 required property var modelData
                 readonly property var widgetItem: appLoader.item ?? loader.item
                 readonly property bool flexible: modelData.widgetId === "flexibleSpacer"
-                readonly property real naturalSize: modelData.enabled === false || flexible ? 0 : root.vertical ? (widgetItem?.implicitHeight || widgetItem?.height || 0) : (widgetItem?.implicitWidth || widgetItem?.width || 0)
+                readonly property bool collapsedAway: root.collapsed && modelData.showWhenCollapsed !== true
+                readonly property real naturalSize: modelData.enabled === false || flexible || collapsedAway ? 0 : root.vertical ? (widgetItem?.implicitHeight || widgetItem?.height || 0) : (widgetItem?.implicitWidth || widgetItem?.width || 0)
                 readonly property bool dragging: root.draggingIndex === index
                 readonly property string unitId: DockConfig.unitOf(modelData)
                 readonly property bool unitDragging: root.draggingUnit === unitId
@@ -344,6 +346,7 @@ FocusScope {
                     return 1.0 + (root.maxMagnification - 1.0) * factor * root.magnificationProgress;
                 }
                 z: dragging || unitDragging ? 100 : (targetScale > 1.01 ? Math.round(targetScale * 10) : 0)
+                visible: !collapsedAway
 
                 Binding {
                     target: slot
