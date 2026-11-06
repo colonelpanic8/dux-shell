@@ -123,6 +123,18 @@ Column {
         iconName: "push_pin"
         visible: root.page.dockHosted && root.pinRows.length > 0
 
+        SettingsSliderRow {
+            resetStore: root.page
+            resetKeys: ["trayCollapsedItemCount"]
+            text: I18n.tr("Leading icons", "system tray: how many icons from the start of the tray stay on a collapsed peek dock")
+            description: I18n.tr("Shown alongside the pinned icons below", "system tray: leading icons slider description on a collapsed peek dock")
+            unit: ""
+            value: root.page.value("trayCollapsedItemCount")
+            minimum: 0
+            maximum: 10
+            onSliderValueChanged: newValue => root.page.set("trayCollapsedItemCount", newValue)
+        }
+
         Repeater {
             model: root.pinRows
 
