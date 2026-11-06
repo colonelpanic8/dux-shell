@@ -193,6 +193,24 @@ Column {
         }
 
         SettingsToggleRow {
+            settingKey: "trayExpandOnHoverCurrent"
+            tags: ["tray", "expand", "hover", "click", "arrow", "peek", "dock", "bar"]
+            text: I18n.tr("Expand on hover", "tray options menu check item: whether hovering the collapsed tray's arrow expands it, instead of only clicking")
+            description: I18n.tr("Remembered across restarts; the tray's options menu switches it too", "system tray settings: current collapse state description")
+            checked: TrayPlacementService.expandOnHover
+            onToggled: checked => TrayPlacementService.setExpandOnHover(checked)
+        }
+
+        SettingsToggleRow {
+            settingKey: "trayExpandOnHoverDefault"
+            tags: ["tray", "expand", "hover", "click", "arrow", "default", "peek", "dock", "bar"]
+            text: I18n.tr("Expand on hover by default", "system tray settings: whether hovering the tray's arrow expands it until switched from its options menu")
+            resetKeys: ["trayExpandOnHoverDefault"]
+            checked: SettingsData.trayExpandOnHoverDefault
+            onToggled: checked => SettingsData.set("trayExpandOnHoverDefault", checked)
+        }
+
+        SettingsToggleRow {
             visible: !root.dockHosted
             text: I18n.tr("Collapse in bar", "system tray settings: collapse the bar's tray behind an expand arrow")
             description: I18n.tr("Keeps the leading and pinned icons; expanded, the tray draws over its neighbours", "system tray settings: collapse in bar description")
