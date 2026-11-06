@@ -59,10 +59,8 @@ BasePill {
         return Math.max(0, nextAction.timeout - elapsed);
     }
 
-    readonly property string iconName: {
-        if (inhibited)
-            return "local_cafe";
-        switch (nextAction?.action) {
+    function actionIcon(action) {
+        switch (action) {
         case "lock":
             return "lock_clock";
         case "suspend":
@@ -71,6 +69,19 @@ BasePill {
             return "desktop_access_disabled";
         }
     }
+
+    function actionName(action) {
+        switch (action) {
+        case "lock":
+            return I18n.tr("Lock");
+        case "suspend":
+            return I18n.tr("Suspend");
+        default:
+            return I18n.tr("Displays off", "idle action: turn the displays off");
+        }
+    }
+
+    readonly property string iconName: inhibited ? "local_cafe" : actionIcon(nextAction?.action)
 
     readonly property string remainingText: inhibited ? "--" : formatRemaining(remaining)
     // Sized for the longest configured timeout on either power source so the pill never resizes.
@@ -172,6 +183,57 @@ BasePill {
             Column {
                 width: inhibitorMenu.customContentWidth
                 spacing: Theme.groupedListGap
+
+                Rectangle {
+                    width: parent.width
+                    height: DCommon.Style.menuRowHeight
+                    radius: Theme.cornerRadiusM
+                    color: idleNowMouse.containsMouse ? Theme.withAlpha(Theme.onSurface, Theme.stateLayerHover) : "transparent"
+
+                    MouseArea {
+                        id: idleNowMouse
+                        anchors.fill: parent
+                        hoverEnabled: true
+                        cursorShape: Qt.PointingHandCursor
+                        onClicked: {
+                            inhibitorMenu.hide();
+                            IdleService.triggerIdleNow();
+                        }
+                    }
+
+                    Row {
+                        anchors.left: parent.left
+                        anchors.right: parent.right
+                        anchors.leftMargin: Theme.spacingM
+                        anchors.rightMargin: Theme.spacingM
+                        anchors.verticalCenter: parent.verticalCenter
+                        spacing: Theme.spacingM
+
+                        DIcon {
+                            anchors.verticalCenter: parent.verticalCenter
+                            size: DCommon.Style.menuItemIconSize
+                            name: root.actionIcon(IdleService.firstIdleActions[0])
+                            color: Theme.onSurfaceVariant
+                        }
+
+                        StyledText {
+                            anchors.verticalCenter: parent.verticalCenter
+                            width: parent.width - DCommon.Style.menuItemIconSize - parent.spacing
+                            text: I18n.tr("Go idle now", "idle inhibitor menu: run the idle action immediately") + " — " + IdleService.firstIdleActions.map(a => root.actionName(a)).join(", ")
+                            font.pixelSize: Theme.fontSizeSmall
+                            font.weight: Theme.fontWeight
+                            color: Theme.onSurface
+                            elide: Text.ElideRight
+                        }
+                    }
+                }
+
+                Rectangle {
+                    width: parent.width - Theme.spacingS * 2
+                    height: Theme.outlineWidth
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    color: Theme.outlineHeavy
+                }
 
                 Repeater {
                     // The manual row is always offered so the menu can also turn keep-awake on.
