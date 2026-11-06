@@ -28,15 +28,18 @@ BasePill {
     property int configuredMaxVisibleItems: SettingsData.widgetOption("systemTray", widgetData, "trayMaxVisibleItems")
     property real configuredIconSpacing: Math.max(0, SettingsData.widgetOption("systemTray", widgetData, "trayIconSpacing"))
     property real sectionAvailablePrimarySize: 0
-    // Only peek docks collapse. A collapsed tray keeps its pinned items plus an arrow that expands the dock.
     property string surfaceKind: "bar"
     readonly property var placement: TrayPlacementService.forScreen(parentScreen?.name ?? "")
-    // Shares the inner end with the expand arrow: the arrow while collapsed, this button once expanded.
-    readonly property bool placementToggleShown: SettingsData.systemTrayPlacementToggle && placement.toggle && !collapsed
+    readonly property bool placementToggleAvailable: SettingsData.systemTrayPlacementToggle && placement.toggle
+    // Shares the inner end with the expand arrow: the arrow while collapsed, this button otherwise.
+    readonly property bool placementToggleShown: placementToggleAvailable && !collapsedArrowShown
     // The end facing the middle of the screen holds the move button and the expand arrow.
     readonly property bool innerEndLeads: surfaceKind === "dock" ? barConfig?.align === "end" : section !== "left"
-    readonly property bool collapsible: barConfig?.autoHideStyle === "peek"
-    property bool collapsed: false
+    readonly property bool collapsesInBar: surfaceKind === "bar" && SettingsData.widgetOption("systemTray", widgetData, "trayCollapseInBar") === true
+    readonly property bool collapsible: surfaceKind === "dock" ? barConfig?.autoHideStyle === "peek" : collapsesInBar
+    property bool hostCollapsed: false
+    property bool barExpanded: false
+    readonly property bool collapsed: surfaceKind === "dock" ? hostCollapsed : collapsesInBar && !barExpanded
     signal expandRequested
     signal expanderHovered(bool hovered)
     readonly property var pinnedTrayKeys: {
@@ -48,7 +51,47 @@ BasePill {
     function keptWhenCollapsed(key, index) {
         return index < collapsedItemCount || (key !== "" && pinnedTrayKeys.includes(key));
     }
-    readonly property bool collapsedArrowShown: collapsed && (hiddenBarItems.length > 0 || displayedMainBarItems.some((entry, index) => !keptWhenCollapsed(entry.key, index)))
+    readonly property bool collapsedArrowNeeded: hiddenBarItems.length > 0 || displayedMainBarItems.some((entry, index) => !keptWhenCollapsed(entry.key, index))
+    readonly property bool collapsedArrowShown: collapsed && collapsedArrowNeeded
+    // The bar reserves only the collapsed tray; expanded, it draws over its neighbours toward the inner end.
+    readonly property int collapsedSlots: displayedMainBarItems.filter((entry, index) => keptWhenCollapsed(entry.key, index)).length + (collapsedArrowNeeded || placementToggleAvailable ? 1 : 0)
+    reservedPrimarySize: collapsesInBar && allTrayItems.length > 0 ? Theme.snap(collapsedSlots * trayItemSize + Math.max(0, collapsedSlots - 1) * configuredIconSpacing + horizontalPadding * 2, dpr) : -1
+    overlayAlign: innerEndLeads ? 1 : 0
+    // A translucent fill would show the covered neighbours through the overlay.
+    fillColor: overlaying ? Theme.withAlpha(Theme.widgetBaseBackgroundColor, 1) : defaultFillColor
+    readonly property string barExpandOn: SettingsData.widgetOption("systemTray", widgetData, "trayExpandOn")
+    property bool contentHovered: false
+    readonly property bool barTrayHovered: isMouseHovered || contentHovered
+    readonly property bool barHeld: barTrayHovered || interactionActive
+    onBarHeldChanged: {
+        if (barHeld)
+            barCollapseTimer.stop();
+        else if (barExpanded)
+            barCollapseTimer.restart();
+    }
+    onBarTrayHoveredChanged: {
+        if (barTrayHovered && collapsesInBar && barExpandOn === "trayHover")
+            expandInBar();
+    }
+    onExpandRequested: {
+        if (collapsesInBar)
+            expandInBar();
+    }
+    onExpanderHovered: hovered => {
+        if (hovered && collapsesInBar && barExpandOn === "arrowHover")
+            expandInBar();
+    }
+    function expandInBar() {
+        barExpanded = true;
+        if (!barHeld)
+            barCollapseTimer.restart();
+    }
+
+    Timer {
+        id: barCollapseTimer
+        interval: Theme.extraLongDuration
+        onTriggered: root.barExpanded = false
+    }
     // The tray grows toward its inner end, so the arrow sits on that side and points that way.
     readonly property bool collapsedArrowLeads: innerEndLeads
     readonly property string collapsedArrowIcon: OverflowLayout.expanderIcon(isVerticalOrientation ? (collapsedArrowLeads ? "bottom" : "top") : (collapsedArrowLeads ? "right" : "left"), false)
@@ -505,6 +548,11 @@ BasePill {
             implicitWidth: layoutLoader.item ? layoutLoader.item.implicitWidth : 0
             implicitHeight: layoutLoader.item ? layoutLoader.item.implicitHeight : 0
 
+            HoverHandler {
+                enabled: root.collapsesInBar
+                onHoveredChanged: root.contentHovered = hovered
+            }
+
             Loader {
                 id: layoutLoader
                 anchors.centerIn: parent
@@ -521,11 +569,14 @@ BasePill {
 
             Loader {
                 active: SettingsData.systemTrayPlacementToggle && root.innerEndLeads !== root.reverseInlineHorizontal
+                // An inactive Loader keeps its last size, and the Row would still make room for it.
+                visible: active
                 sourceComponent: placementToggleComponent
             }
 
             Loader {
                 active: root.collapsible && root.collapsedArrowLeads !== root.reverseInlineHorizontal
+                visible: active
                 sourceComponent: collapsedArrowComponent
             }
 
@@ -598,11 +649,13 @@ BasePill {
 
             Loader {
                 active: root.collapsible && root.collapsedArrowLeads === root.reverseInlineHorizontal
+                visible: active
                 sourceComponent: collapsedArrowComponent
             }
 
             Loader {
                 active: SettingsData.systemTrayPlacementToggle && root.innerEndLeads === root.reverseInlineHorizontal
+                visible: active
                 sourceComponent: placementToggleComponent
             }
         }
@@ -914,11 +967,13 @@ BasePill {
 
             Loader {
                 active: SettingsData.systemTrayPlacementToggle && root.innerEndLeads
+                visible: active
                 sourceComponent: placementToggleComponent
             }
 
             Loader {
                 active: root.collapsible && root.collapsedArrowLeads
+                visible: active
                 sourceComponent: collapsedArrowComponent
             }
 
@@ -1008,11 +1063,13 @@ BasePill {
 
             Loader {
                 active: root.collapsible && !root.collapsedArrowLeads
+                visible: active
                 sourceComponent: collapsedArrowComponent
             }
 
             Loader {
                 active: SettingsData.systemTrayPlacementToggle && !root.innerEndLeads
+                visible: active
                 sourceComponent: placementToggleComponent
             }
         }
