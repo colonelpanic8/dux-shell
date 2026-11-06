@@ -120,6 +120,8 @@ BasePill {
 
     readonly property var allSortedTrayItems: {
         DotfilesService.state;
+        if (!DotfilesService.loaded)
+            return [];
         return sortByPreferredOrder(allTrayItems, _trayOrderTrigger);
     }
     readonly property var allSortedTrayItemKeys: allSortedTrayItems.map(item => getTrayItemKey(item))

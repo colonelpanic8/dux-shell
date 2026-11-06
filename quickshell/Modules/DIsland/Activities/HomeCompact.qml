@@ -61,6 +61,8 @@ Item {
     readonly property var allTrayItems: traySlotEnabled ? TrayMenuManager.filterEnvHidden(SystemTray.items.values) : []
     readonly property var allSortedTrayItems: {
         DotfilesService.state;
+        if (!DotfilesService.loaded)
+            return [];
         return TrayMenuManager.sortByPreferredOrder(allTrayItems, SessionData.trayItemOrder, item => DotfilesService.priority(item));
     }
     // Same options as the bar's tray widget (a satellite entry on island bars)
