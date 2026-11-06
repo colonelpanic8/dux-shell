@@ -69,7 +69,11 @@ Item {
 
     readonly property bool traySlotEnabled: (root.controller.homeLeftGroups.indexOf("tray") !== -1 || root.controller.homeRightGroups.indexOf("tray") !== -1)
     readonly property var allTrayItems: traySlotEnabled ? TrayMenuManager.filterEnvHidden(SystemTray.items.values) : []
-    readonly property var allSortedTrayItems: TrayMenuManager.sortByPreferredOrder(allTrayItems, SessionData.trayItemOrder)
+    readonly property var allSortedTrayItems: {
+        if (!DotfilesService.loaded)
+            return [];
+        return TrayMenuManager.sortByPreferredOrder(allTrayItems, SessionData.trayItemOrder, item => DotfilesService.priority(item));
+    }
     // Same options as the bar's tray widget (a satellite entry on island bars)
     readonly property var trayWidgetData: SettingsData.barWidgetEntry(root.controller.barConfig, "systemTray")
     readonly property var visibleSortedTrayItems: allSortedTrayItems.filter(item => !SessionData.isHiddenTrayId(TrayMenuManager.getTrayItemKey(item)))
