@@ -41,6 +41,7 @@ BasePill {
     property bool barExpanded: false
     readonly property bool collapsed: surfaceKind === "dock" ? hostCollapsed : collapsesInBar && !barExpanded
     signal expandRequested
+    signal collapseRequested
     signal expanderHovered(bool hovered)
     readonly property int collapsedItemCount: Math.max(0, Math.min(10, Number(SettingsData.widgetOption("systemTray", widgetData, "trayCollapsedItemCount")) || 0))
     // By rendered position, not key: items without an id all share the empty key.
@@ -48,7 +49,9 @@ BasePill {
         return index < collapsedItemCount || TrayPlacementService.pinnedKeys.includes(key);
     }
     readonly property bool collapsedArrowNeeded: hiddenBarItems.length > 0 || displayedMainBarItems.some((entry, index) => !keptWhenCollapsed(entry.key, index))
-    readonly property bool collapsedArrowShown: collapsed && collapsedArrowNeeded
+    readonly property bool collapseActive: surfaceKind === "dock" ? collapsible && TrayPlacementService.collapseEnabled : collapsesInBar
+    // Expanded, the same arrow points back and collapses the tray at once.
+    readonly property bool collapsedArrowShown: collapseActive && collapsedArrowNeeded
     // The bar reserves only the collapsed tray; expanded, it draws over its neighbours toward the inner end.
     readonly property int collapsedSlots: displayedMainBarItems.filter((entry, index) => keptWhenCollapsed(entry.key, index)).length + (collapsedArrowNeeded ? 1 : 0) + (quickMenuShown ? 1 : 0)
     reservedPrimarySize: collapsesInBar && allTrayItems.length > 0 ? Theme.snap(collapsedSlots * trayItemSize + Math.max(0, collapsedSlots - 1) * configuredIconSpacing + horizontalPadding * 2, dpr) : -1
@@ -68,6 +71,10 @@ BasePill {
         if (collapsesInBar)
             expandInBar();
     }
+    onCollapseRequested: {
+        barCollapseTimer.stop();
+        barExpanded = false;
+    }
     onExpanderHovered: hovered => {
         if (hovered && collapsesInBar && TrayPlacementService.expandOnHover)
             expandInBar();
@@ -85,7 +92,7 @@ BasePill {
     }
     // The tray grows toward its inner end, so the arrow sits on that side and points that way.
     readonly property bool collapsedArrowLeads: innerEndLeads
-    readonly property string collapsedArrowIcon: OverflowLayout.expanderIcon(isVerticalOrientation ? (collapsedArrowLeads ? "bottom" : "top") : (collapsedArrowLeads ? "right" : "left"), false)
+    readonly property string collapsedArrowIcon: OverflowLayout.expanderIcon(isVerticalOrientation ? (collapsedArrowLeads ? "bottom" : "top") : (collapsedArrowLeads ? "right" : "left"), !collapsed)
     readonly property bool interactionActive: menuOpen || trayMenuState.showMenu || (quickMenuLoader.item?.openState ?? false)
     readonly property var hiddenTrayIds: TrayMenuManager.envHiddenTrayIds
     readonly property var allTrayItems: TrayMenuManager.filterEnvHidden(SystemTray.items.values)
@@ -659,9 +666,9 @@ BasePill {
             tray: root
             shown: root.collapsedArrowShown
             iconName: root.collapsedArrowIcon
-            tooltipText: I18n.tr("Show all tray icons", "tooltip on the arrow that expands a collapsed dock's tray")
+            tooltipText: root.collapsed ? I18n.tr("Show all tray icons", "tooltip on the arrow that expands a collapsed dock's tray") : I18n.tr("Collapse tray", "tooltip on the arrow that collapses an expanded tray")
             onHoverChanged: hovered => root.expanderHovered(hovered)
-            onClicked: root.expandRequested()
+            onClicked: root.collapsed ? root.expandRequested() : root.collapseRequested()
         }
     }
 
