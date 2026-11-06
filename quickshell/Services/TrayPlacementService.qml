@@ -10,6 +10,7 @@ Singleton {
     id: root
 
     readonly property string placement: TrayPlacement.normalize(SessionData.systemTrayPlacement, SettingsData.systemTrayDefaultPlacement)
+    readonly property bool collapseEnabled: TrayPlacement.collapseEnabled(SessionData.trayCollapseEnabled, SettingsData.trayCollapseDefault)
     // Keyed by screen and bar, so bars sharing a screen never overwrite each other.
     property var routedBars: ({})
 
@@ -49,6 +50,15 @@ Singleton {
     function togglePlacement() {
         setPlacement(TrayPlacement.flipped(root.placement));
         return root.placement;
+    }
+
+    function setCollapseEnabled(enabled) {
+        SessionData.set("trayCollapseEnabled", enabled === true);
+    }
+
+    function toggleCollapse() {
+        setCollapseEnabled(!root.collapseEnabled);
+        return root.collapseEnabled;
     }
 
     function setBarRouted(screenName, barId, routed) {

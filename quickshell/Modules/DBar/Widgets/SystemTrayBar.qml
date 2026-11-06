@@ -9,6 +9,7 @@ import qs.Services
 import qs.DCommon.Widgets
 import qs.Widgets
 import "../OverflowLayout.js" as OverflowLayout
+import "../../../Common/settings/DockConfig.js" as DockConfig
 
 BasePill {
     id: root
@@ -34,8 +35,9 @@ BasePill {
     readonly property bool placementToggleShown: placementToggleAvailable
     // The end facing the middle of the screen holds the move button and the expand arrow.
     readonly property bool innerEndLeads: surfaceKind === "dock" ? barConfig?.align === "end" : section !== "left"
-    readonly property bool collapsesInBar: surfaceKind === "bar" && SettingsData.widgetOption("systemTray", widgetData, "trayCollapseInBar") === true
-    readonly property bool collapsible: surfaceKind === "dock" ? barConfig?.autoHideStyle === "peek" : collapsesInBar
+    // Whether this tray can collapse here; collapsing itself can be switched off.
+    readonly property bool collapsible: surfaceKind === "dock" ? DockConfig.trayCollapsible(barConfig) : SettingsData.widgetOption("systemTray", widgetData, "trayCollapseInBar") === true
+    readonly property bool collapsesInBar: surfaceKind === "bar" && collapsible && TrayPlacementService.collapseEnabled
     property bool hostCollapsed: false
     property bool barExpanded: false
     readonly property bool collapsed: surfaceKind === "dock" ? hostCollapsed : collapsesInBar && !barExpanded

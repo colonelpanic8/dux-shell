@@ -255,6 +255,7 @@ Singleton {
     property var hiddenTrayIds: []
     property var trayItemOrder: []
     property string systemTrayPlacement: ""
+    property var trayCollapseEnabled: null
     property var recentColors: []
     property bool showThirdPartyPlugins: false
     property bool pluginBrowserInstalledFirst: false

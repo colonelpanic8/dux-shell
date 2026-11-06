@@ -8,6 +8,11 @@ function normalize(value, fallback) {
     return PLACEMENTS.includes(fallback) ? fallback : "bar";
 }
 
+// Unset until first toggled, so the configured default applies.
+function collapseEnabled(stored, fallback) {
+    return typeof stored === "boolean" ? stored : fallback !== false;
+}
+
 function flipped(placement) {
     return placement === "dock" ? "bar" : "dock";
 }
