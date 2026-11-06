@@ -60,7 +60,6 @@ Item {
     readonly property bool traySlotEnabled: (root.controller.homeLeftGroups.indexOf("tray") !== -1 || root.controller.homeRightGroups.indexOf("tray") !== -1)
     readonly property var allTrayItems: traySlotEnabled ? TrayMenuManager.filterEnvHidden(SystemTray.items.values) : []
     readonly property var allSortedTrayItems: {
-        DotfilesService.state;
         if (!DotfilesService.loaded)
             return [];
         return TrayMenuManager.sortByPreferredOrder(allTrayItems, SessionData.trayItemOrder, item => DotfilesService.priority(item));
