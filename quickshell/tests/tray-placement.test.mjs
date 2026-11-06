@@ -15,6 +15,11 @@ test("stored placement wins, then the configured default, then the bar", () => {
     assert.equal(placement.normalize("corner", "elsewhere"), "bar");
 });
 
+test("collapsing follows the stored choice, then the configured default, which is on", () => {
+    assert.deepEqual([placement.collapseEnabled(false, true), placement.collapseEnabled(true, false)], [false, true]);
+    assert.deepEqual([placement.collapseEnabled(null, false), placement.collapseEnabled(null, true), placement.collapseEnabled(null, undefined)], [false, true, true]);
+});
+
 test("with both surfaces the tray lives where it was placed and can move", () => {
     assert.deepEqual(resolve({ ...both, placement: "dock" }), { home: "dock", host: "dock", routable: false, toggle: true });
     assert.deepEqual(resolve({ ...both, placement: "bar" }), { home: "bar", host: "bar", routable: false, toggle: true });
