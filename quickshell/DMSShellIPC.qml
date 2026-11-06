@@ -2155,6 +2155,20 @@ Item {
             return `id: ${id}\ntitle: ${title}\nhasMenu: ${hasMenu}\nonlyMenu: ${onlyMenu}`;
         }
 
+        function placement(): string {
+            return TrayPlacementService.placement;
+        }
+
+        function setPlacement(where: string): string {
+            if (!TrayPlacementService.setPlacement(where))
+                return `ERROR: Unknown placement: ${where}. Use bar or dock`;
+            return TrayPlacementService.placement;
+        }
+
+        function togglePlacement(): string {
+            return TrayPlacementService.togglePlacement();
+        }
+
         target: "tray"
     }
 
