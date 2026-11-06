@@ -624,7 +624,7 @@ var LOCAL_SPEC = {
     systemTrayIconTintStrength: {
         def: 135
     },
-    systemTrayPlacementToggle: {
+    systemTrayQuickMenu: {
         def: true
     },
     trayCollapseDefault: {

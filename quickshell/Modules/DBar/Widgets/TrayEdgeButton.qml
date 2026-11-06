@@ -5,7 +5,7 @@ import qs.Services
 import qs.DCommon.Widgets
 import qs.Widgets
 
-// A tray-sized button at the tray's inner end: the collapsed tray's expand arrow, or the move-to-bar/dock button.
+// A tray-sized button at the tray's inner end: the collapsed tray's expand arrow, or the quick options button.
 Item {
     id: root
 
@@ -87,30 +87,38 @@ Item {
         sourceComponent: DTooltip {}
     }
 
-    function showTooltip() {
+    // Screen point just outside the button on the side away from the surface's edge, where popups open.
+    function popupAnchor() {
         const screen = tray.parentScreen;
+        // A dock's layer window does not start at the screen edge, so map through its surface.
+        const corner = BarWidgetService.registrationForItem(tray)?.context?.surface?.screenPoint(root, 0, 0);
+        if (!corner || !screen)
+            return null;
+        const edge = tray.axis?.edge || "bottom";
+        const gap = Theme.spacingS;
+        const point = {
+            left: Qt.point(corner.x + root.width + gap, corner.y + root.height / 2),
+            right: Qt.point(corner.x - gap, corner.y + root.height / 2),
+            top: Qt.point(corner.x + root.width / 2, corner.y + root.height + gap),
+            bottom: Qt.point(corner.x + root.width / 2, corner.y - gap)
+        }[edge];
+        return {
+            x: point.x,
+            y: point.y,
+            edge,
+            isVertical: tray.isVerticalOrientation,
+            screen
+        };
+    }
+
+    function showTooltip() {
         tooltipLoader.active = true;
         const tooltip = tooltipLoader.item as DTooltip;
-        if (!tooltip || !screen)
+        const anchor = root.popupAnchor();
+        if (!tooltip || !anchor)
             return;
         const text = root.tooltipText;
         tooltip.text = text;
-        // A dock's layer window does not start at the screen edge, so map through its surface.
-        const corner = BarWidgetService.registrationForItem(tray)?.context?.surface?.screenPoint(root, 0, 0);
-        if (!corner)
-            return;
-        switch (tray.axis?.edge) {
-        case "left":
-            tooltip.show(text, corner.x + root.width + Theme.spacingS, corner.y + root.height / 2, screen, true, false);
-            return;
-        case "right":
-            tooltip.show(text, corner.x - Theme.spacingS, corner.y + root.height / 2, screen, false, true);
-            return;
-        case "top":
-            tooltip.show(text, corner.x + root.width / 2, corner.y + root.height + Theme.spacingS, screen, false, false);
-            return;
-        default:
-            tooltip.show(text, corner.x + root.width / 2, corner.y - Theme.spacingS - tooltip.implicitHeight, screen, false, false);
-        }
+        tooltip.show(text, anchor.x, anchor.edge === "bottom" ? anchor.y - tooltip.implicitHeight : anchor.y, anchor.screen, anchor.edge === "left", anchor.edge === "right");
     }
 }

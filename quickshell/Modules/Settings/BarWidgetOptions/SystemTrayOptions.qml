@@ -130,7 +130,7 @@ Column {
             settingKey: "trayPlacementCurrent"
             tags: ["tray", "placement", "move", "dock", "corner", "bar"]
             text: I18n.tr("Show the tray in", "system tray settings: current tray placement, the bar or a dock")
-            description: I18n.tr("Remembered across restarts; the move button on the tray switches it too", "system tray settings: current placement description")
+            description: I18n.tr("Remembered across restarts; the tray's options menu switches it too", "system tray settings: current placement description")
             model: [I18n.tr("Bar"), I18n.tr("Dock")]
             values: ["bar", "dock"]
             value: TrayPlacementService.placement
@@ -149,13 +149,13 @@ Column {
         }
 
         SettingsToggleRow {
-            settingKey: "systemTrayPlacementToggle"
-            tags: ["tray", "placement", "move", "button", "dock", "bar"]
-            text: I18n.tr("Move button", "system tray settings: show a button on the tray that moves it between the bar and a dock")
-            description: I18n.tr("A button at the tray's inner end moves it between the bar and a dock", "system tray settings: move button description")
-            resetKeys: ["systemTrayPlacementToggle"]
-            checked: SettingsData.systemTrayPlacementToggle
-            onToggled: checked => SettingsData.set("systemTrayPlacementToggle", checked)
+            settingKey: "systemTrayQuickMenu"
+            tags: ["tray", "options", "menu", "button", "placement", "move", "collapse", "dock", "bar"]
+            text: I18n.tr("Options button", "system tray settings: show a button on the tray that opens its quick options menu")
+            description: I18n.tr("A button at the tray's inner end opens a menu to move the tray or stop it collapsing", "system tray settings: options button description")
+            resetKeys: ["systemTrayQuickMenu"]
+            checked: SettingsData.systemTrayQuickMenu
+            onToggled: checked => SettingsData.set("systemTrayQuickMenu", checked)
         }
 
         SettingsToggleRow {
@@ -172,11 +172,29 @@ Column {
     SettingsCard {
         settingKey: "barWidgetTrayCollapse"
         tags: ["tray", "collapse", "bar", "arrow", "expand", "hover"]
-        title: I18n.tr("Collapse", "system tray settings: card for collapsing the bar's tray behind an expand arrow")
+        title: I18n.tr("Collapse", "system tray settings: card for collapsing the tray behind an expand arrow")
         iconName: "unfold_less"
-        visible: !root.dockHosted
 
         SettingsToggleRow {
+            settingKey: "trayCollapseCurrent"
+            tags: ["tray", "collapse", "automatically", "expanded", "peek", "dock", "bar"]
+            text: I18n.tr("Collapse automatically", "tray options menu check item: whether the tray collapses to its pinned icons and an expand arrow")
+            description: I18n.tr("Remembered across restarts; the tray's options menu switches it too", "system tray settings: current collapse state description")
+            checked: TrayPlacementService.collapseEnabled
+            onToggled: checked => TrayPlacementService.setCollapseEnabled(checked)
+        }
+
+        SettingsToggleRow {
+            settingKey: "trayCollapseDefault"
+            tags: ["tray", "collapse", "default", "peek", "dock", "bar"]
+            text: I18n.tr("Collapse by default", "system tray settings: whether the tray collapses until it is switched from its options menu")
+            resetKeys: ["trayCollapseDefault"]
+            checked: SettingsData.trayCollapseDefault
+            onToggled: checked => SettingsData.set("trayCollapseDefault", checked)
+        }
+
+        SettingsToggleRow {
+            visible: !root.dockHosted
             text: I18n.tr("Collapse in bar", "system tray settings: collapse the bar's tray behind an expand arrow")
             description: I18n.tr("Keeps the leading and pinned icons; expanded, the tray draws over its neighbours", "system tray settings: collapse in bar description")
             checked: root.collapsesInBar
