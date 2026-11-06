@@ -1303,6 +1303,7 @@ Item {
                         sectionCrossOffset: barWindow.islandSatelliteCrossShift
                         reservedStart: barWindow.islandReservesStrip ? barWindow.islandReachStart - barWindow.islandStripClearance - barWindow.contentAlongStart : NaN
                         reservedEnd: barWindow.islandReservesStrip ? barWindow.islandReachEnd + barWindow.islandStripClearance - barWindow.contentAlongStart : NaN
+                        islandSettled: !barWindow.islandReservesStrip || !(barWindow.islandHost.expanded || barWindow.islandHost.sheetOut || barWindow.islandHost.transientActive || barWindow.islandHost.motionRunning)
                     }
 
                     // Passive: tracks cursor without intercepting clicks or scroll
