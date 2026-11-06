@@ -42,6 +42,7 @@ Item {
     property real popupY: 0
 
     visible: active && widgetLoader.widgetEnabled && !detached
+    z: widgetItem?.overlaying ? 1 : 0
     width: participates ? (sectionContext.isVertical ? sectionContext.width : itemWidth) : 0
     height: participates ? itemHeight : 0
 
