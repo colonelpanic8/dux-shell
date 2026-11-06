@@ -623,6 +623,15 @@ var LOCAL_SPEC = {
     systemTrayItemClickActions: {
         def: {}
     },
+    systemTrayPlacementToggle: {
+        def: true
+    },
+    systemTrayDefaultPlacement: {
+        def: "bar"
+    },
+    trayOverflowToDock: {
+        def: false
+    },
     controlCenterColumns: {
         def: 8
     },
