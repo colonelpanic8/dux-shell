@@ -36,10 +36,6 @@ Singleton {
         });
     }
 
-    function toggleShown(screenName) {
-        return SettingsData.systemTrayPlacementToggle && forScreen(screenName).toggle;
-    }
-
     function setPlacement(value) {
         if (!TrayPlacement.PLACEMENTS.includes(value))
             return false;

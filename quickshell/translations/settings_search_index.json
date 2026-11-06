@@ -10425,6 +10425,22 @@
   },
   {
     "section": "barWidgetOption:SystemTrayOptions.qml:15",
+    "label": "Collapse automatically",
+    "tabIndex": 22,
+    "keywords": [],
+    "runtimeType": "barWidgetOption",
+    "optionFile": "SystemTrayOptions.qml"
+  },
+  {
+    "section": "barWidgetOption:SystemTrayOptions.qml:16",
+    "label": "Collapse by default",
+    "tabIndex": 22,
+    "keywords": [],
+    "runtimeType": "barWidgetOption",
+    "optionFile": "SystemTrayOptions.qml"
+  },
+  {
+    "section": "barWidgetOption:SystemTrayOptions.qml:17",
     "label": "Collapse in bar",
     "tabIndex": 22,
     "keywords": [],
@@ -10656,7 +10672,7 @@
     "optionFile": "IslandOptions.qml"
   },
   {
-    "section": "barWidgetOption:SystemTrayOptions.qml:16",
+    "section": "barWidgetOption:SystemTrayOptions.qml:18",
     "label": "Expand on",
     "tabIndex": 22,
     "keywords": [],
@@ -10880,7 +10896,7 @@
     "optionFile": "AppsDockOptions.qml"
   },
   {
-    "section": "barWidgetOption:SystemTrayOptions.qml:18",
+    "section": "barWidgetOption:SystemTrayOptions.qml:20",
     "label": "Leading icons",
     "tabIndex": 22,
     "keywords": [],
@@ -10992,14 +11008,6 @@
     "optionFile": "SystemMonitorOptions.qml"
   },
   {
-    "section": "barWidgetOption:SystemTrayOptions.qml:12",
-    "label": "Move button",
-    "tabIndex": 22,
-    "keywords": [],
-    "runtimeType": "barWidgetOption",
-    "optionFile": "SystemTrayOptions.qml"
-  },
-  {
     "section": "barWidgetOption:SystemTrayOptions.qml:13",
     "label": "Move to a dock when the bar is full",
     "tabIndex": 22,
@@ -11078,6 +11086,14 @@
     "keywords": [],
     "runtimeType": "barWidgetOption",
     "optionFile": "AppsDockOptions.qml"
+  },
+  {
+    "section": "barWidgetOption:SystemTrayOptions.qml:12",
+    "label": "Options button",
+    "tabIndex": 22,
+    "keywords": [],
+    "runtimeType": "barWidgetOption",
+    "optionFile": "SystemTrayOptions.qml"
   },
   {
     "section": "barWidgetOption:ClockOptions.qml:2",
@@ -11280,7 +11296,7 @@
     "optionFile": "SystemTrayOptions.qml"
   },
   {
-    "section": "barWidgetOption:SystemTrayOptions.qml:17",
+    "section": "barWidgetOption:SystemTrayOptions.qml:19",
     "label": "Show when collapsed",
     "tabIndex": 22,
     "keywords": [],
