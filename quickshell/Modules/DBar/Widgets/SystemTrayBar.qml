@@ -9,6 +9,7 @@ import qs.Services
 import qs.DCommon.Widgets
 import qs.Widgets
 import "../OverflowLayout.js" as OverflowLayout
+import "../../../Common/settings/DockConfig.js" as DockConfig
 
 BasePill {
     id: root
@@ -28,25 +29,76 @@ BasePill {
     property int configuredMaxVisibleItems: SettingsData.widgetOption("systemTray", widgetData, "trayMaxVisibleItems")
     property real configuredIconSpacing: Math.max(0, SettingsData.widgetOption("systemTray", widgetData, "trayIconSpacing"))
     property real sectionAvailablePrimarySize: 0
-    // Only peek docks collapse. A collapsed tray keeps its pinned items plus an arrow that expands the dock.
-    readonly property bool collapsible: barConfig?.autoHideStyle === "peek"
-    property bool collapsed: false
+    property string surfaceKind: "bar"
+    readonly property var placement: TrayPlacementService.forScreen(parentScreen?.name ?? "")
+    // The end facing the middle of the screen holds the quick options button and the expand arrow.
+    readonly property bool innerEndLeads: surfaceKind === "dock" ? barConfig?.align === "end" : section !== "left"
+    // Whether this tray can collapse here; collapsing itself can be switched off from the quick menu.
+    readonly property bool collapsible: surfaceKind === "dock" ? DockConfig.trayCollapsible(barConfig) : SettingsData.widgetOption("systemTray", widgetData, "trayCollapseInBar") === true
+    readonly property bool collapsesInBar: surfaceKind === "bar" && collapsible && TrayPlacementService.collapseEnabled
+    readonly property bool quickMenuShown: SettingsData.systemTrayQuickMenu && (placement.toggle || collapsible)
+    property bool hostCollapsed: false
+    property bool barExpanded: false
+    readonly property bool collapsed: surfaceKind === "dock" ? hostCollapsed : collapsesInBar && !barExpanded
     signal expandRequested
+    signal collapseRequested
     signal expanderHovered(bool hovered)
-    readonly property var pinnedTrayKeys: {
-        const keys = SettingsData.widgetOption("systemTray", widgetData, "trayPinnedItems");
-        return Array.isArray(keys) ? keys : [];
-    }
     readonly property int collapsedItemCount: Math.max(0, Math.min(10, Number(SettingsData.widgetOption("systemTray", widgetData, "trayCollapsedItemCount")) || 0))
     // By rendered position, not key: items without an id all share the empty key.
     function keptWhenCollapsed(key, index) {
-        return index < collapsedItemCount || (key !== "" && pinnedTrayKeys.includes(key));
+        return index < collapsedItemCount || TrayPlacementService.pinnedKeys.includes(key);
     }
-    readonly property bool collapsedArrowShown: collapsed && (hiddenBarItems.length > 0 || displayedMainBarItems.some((entry, index) => !keptWhenCollapsed(entry.key, index)))
-    // The dock grows away from its aligned end, so the arrow sits on that side and points that way.
-    readonly property bool collapsedArrowLeads: barConfig?.align === "end"
-    readonly property string collapsedArrowIcon: OverflowLayout.expanderIcon(isVerticalOrientation ? (collapsedArrowLeads ? "bottom" : "top") : (collapsedArrowLeads ? "right" : "left"), false)
-    readonly property bool interactionActive: menuOpen || trayMenuState.showMenu
+    readonly property bool collapsedArrowNeeded: hiddenBarItems.length > 0 || displayedMainBarItems.some((entry, index) => !keptWhenCollapsed(entry.key, index))
+    readonly property bool collapseActive: surfaceKind === "dock" ? collapsible && TrayPlacementService.collapseEnabled : collapsesInBar
+    // Expanded, the same arrow points back and collapses the tray at once.
+    readonly property bool collapsedArrowShown: collapseActive && collapsedArrowNeeded
+    readonly property int collapsedSlots: displayedMainBarItems.filter((entry, index) => keptWhenCollapsed(entry.key, index)).length + (collapsedArrowNeeded ? 1 : 0) + (quickMenuShown ? 1 : 0)
+    readonly property bool sizedAsCollapsible: collapsesInBar && allTrayItems.length > 0
+    // The expanded tray pushes its neighbours aside, but the bar only ever owes it the collapsed size: where the
+    // expanded tray does not fit, the rest draws over the neighbours toward the inner end instead of overflowing them.
+    readonly property real naturalPrimarySize: isVerticalOrientation ? visualHeight : visualWidth
+    readonly property real minimumPrimarySize: sizedAsCollapsible ? Math.min(naturalPrimarySize, Theme.snap(collapsedSlots * trayItemSize + Math.max(0, collapsedSlots - 1) * configuredIconSpacing + horizontalPadding * 2, dpr)) : naturalPrimarySize
+    property real allottedPrimarySize: 0
+    reservedPrimarySize: sizedAsCollapsible ? Math.min(naturalPrimarySize, Math.max(minimumPrimarySize, allottedPrimarySize > 0 ? allottedPrimarySize : naturalPrimarySize)) : -1
+    overlayAlign: innerEndLeads ? 1 : 0
+    // A translucent fill would show the covered neighbours through the overlay.
+    fillColor: overlaying ? Theme.withAlpha(Theme.widgetBaseBackgroundColor, 1) : defaultFillColor
+    property bool contentHovered: false
+    readonly property bool barTrayHovered: isMouseHovered || contentHovered
+    readonly property bool barHeld: barTrayHovered || interactionActive
+    onBarHeldChanged: {
+        if (barHeld)
+            barCollapseTimer.stop();
+        else if (barExpanded)
+            barCollapseTimer.restart();
+    }
+    onExpandRequested: {
+        if (collapsesInBar)
+            expandInBar();
+    }
+    onCollapseRequested: {
+        barCollapseTimer.stop();
+        barExpanded = false;
+    }
+    onExpanderHovered: hovered => {
+        if (hovered && collapsesInBar && TrayPlacementService.expandOnHover)
+            expandInBar();
+    }
+    function expandInBar() {
+        barExpanded = true;
+        if (!barHeld)
+            barCollapseTimer.restart();
+    }
+
+    Timer {
+        id: barCollapseTimer
+        interval: Theme.extraLongDuration
+        onTriggered: root.barExpanded = false
+    }
+    // The tray grows toward its inner end, so the arrow sits on that side and points that way.
+    readonly property bool collapsedArrowLeads: innerEndLeads
+    readonly property string collapsedArrowIcon: OverflowLayout.expanderIcon(isVerticalOrientation ? (collapsedArrowLeads ? "bottom" : "top") : (collapsedArrowLeads ? "right" : "left"), !collapsed)
+    readonly property bool interactionActive: menuOpen || trayMenuState.showMenu || (quickMenuLoader.item?.openState ?? false)
     readonly property var hiddenTrayIds: TrayMenuManager.envHiddenTrayIds
     readonly property var allTrayItems: TrayMenuManager.filterEnvHidden(SystemTray.items.values)
     function getTrayItemKey(item) {
@@ -87,6 +139,8 @@ BasePill {
 
     Connections {
         target: TrayMenuManager
+        // The bar and a dock can both hold a tray on one screen; only the one showing it answers.
+        enabled: root.placement.host === root.surfaceKind
 
         function onOpenTrayMenuRequested() {
             const request = TrayMenuManager.claimMenuRequest(root.parentScreen?.name);
@@ -517,6 +571,11 @@ BasePill {
             implicitWidth: layoutLoader.item ? layoutLoader.item.implicitWidth : 0
             implicitHeight: layoutLoader.item ? layoutLoader.item.implicitHeight : 0
 
+            HoverHandler {
+                enabled: root.collapsesInBar
+                onHoveredChanged: root.contentHovered = hovered
+            }
+
             Loader {
                 id: layoutLoader
                 anchors.centerIn: parent
@@ -532,7 +591,15 @@ BasePill {
             layoutDirection: root.reverseInlineHorizontal ? Qt.RightToLeft : Qt.LeftToRight
 
             Loader {
+                active: SettingsData.systemTrayQuickMenu && root.innerEndLeads !== root.reverseInlineHorizontal
+                // An inactive Loader keeps its last size, and the Row would still make room for it.
+                visible: active
+                sourceComponent: quickMenuButtonComponent
+            }
+
+            Loader {
                 active: root.collapsible && root.collapsedArrowLeads !== root.reverseInlineHorizontal
+                visible: active
                 sourceComponent: collapsedArrowComponent
             }
 
@@ -605,7 +672,14 @@ BasePill {
 
             Loader {
                 active: root.collapsible && root.collapsedArrowLeads === root.reverseInlineHorizontal
+                visible: active
                 sourceComponent: collapsedArrowComponent
+            }
+
+            Loader {
+                active: SettingsData.systemTrayQuickMenu && root.innerEndLeads === root.reverseInlineHorizontal
+                visible: active
+                sourceComponent: quickMenuButtonComponent
             }
         }
     }
@@ -613,100 +687,67 @@ BasePill {
     Component {
         id: collapsedArrowComponent
 
-        Item {
-            id: collapsedArrow
-            property real extent: root.collapsedArrowShown ? root.trayItemSize : 0
-            width: root.isVerticalOrientation ? root.barThickness : extent
-            height: root.isVerticalOrientation ? extent : root.barThickness
-            opacity: root.collapsedArrowShown ? 1 : 0
-            visible: extent > 0
+        TrayEdgeButton {
+            tray: root
+            shown: root.collapsedArrowShown
+            iconName: root.collapsedArrowIcon
+            tooltipText: root.collapsed ? I18n.tr("Show all tray icons", "tooltip on the arrow that expands a collapsed dock's tray") : I18n.tr("Collapse tray", "tooltip on the arrow that collapses an expanded tray")
+            onHoverChanged: hovered => root.expanderHovered(hovered)
+            onClicked: root.collapsed ? root.expandRequested() : root.collapseRequested()
+        }
+    }
 
-            Behavior on extent {
-                enabled: !SettingsData.reduceMotion
-                NumberAnimation {
-                    duration: Theme.shortDuration
-                    easing.type: Theme.standardEasing
+    Component {
+        id: quickMenuButtonComponent
+
+        TrayEdgeButton {
+            id: quickMenuButton
+            tray: root
+            shown: root.quickMenuShown
+            iconName: "tune"
+            tooltipText: I18n.tr("Tray options", "tooltip on the tray button that opens a menu to move the tray or stop it collapsing")
+            onClicked: root.openQuickMenu(quickMenuButton)
+        }
+    }
+
+    function openQuickMenu(button) {
+        const anchor = button.popupAnchor();
+        if (!anchor)
+            return;
+        quickMenuLoader.active = true;
+        quickMenuLoader.item.openFromBar(anchor);
+    }
+
+    // Loaded on first use; its open state holds the dock or the expanded bar tray like an item menu does.
+    Loader {
+        id: quickMenuLoader
+        active: false
+        sourceComponent: DContextMenu {
+            layerNamespace: "dms:tray-quick-menu"
+            menuItems: [
+                {
+                    type: "item",
+                    icon: root.isVerticalOrientation ? "swap_horiz" : "swap_vert",
+                    text: root.surfaceKind === "dock" ? I18n.tr("Move tray to the bar", "tray options menu item that moves the system tray from a dock into the bar") : I18n.tr("Move tray to the corner", "tray options menu item that moves the system tray from the bar into a dock"),
+                    hidden: !root.placement.toggle,
+                    // Moving can destroy this tray and its menu, so let the menu close first.
+                    action: () => Qt.callLater(() => TrayPlacementService.togglePlacement())
+                },
+                {
+                    type: "item",
+                    icon: TrayPlacementService.collapseEnabled ? "check_box" : "check_box_outline_blank",
+                    text: I18n.tr("Collapse automatically", "tray options menu check item: whether the tray collapses to its pinned icons and an expand arrow"),
+                    hidden: !root.collapsible,
+                    action: () => TrayPlacementService.toggleCollapse()
+                },
+                {
+                    type: "item",
+                    icon: TrayPlacementService.expandOnHover ? "check_box" : "check_box_outline_blank",
+                    text: I18n.tr("Expand on hover", "tray options menu check item: whether hovering the collapsed tray's arrow expands it, instead of only clicking"),
+                    hidden: !root.collapsible,
+                    action: () => TrayPlacementService.toggleExpandOnHover()
                 }
-            }
-
-            Behavior on opacity {
-                enabled: !SettingsData.reduceMotion
-                NumberAnimation {
-                    duration: Theme.shortDuration
-                    easing.type: Theme.standardEasing
-                }
-            }
-
-            BarPillSurface {
-                id: collapsedArrowButton
-                width: root.trayItemSize
-                height: root.trayItemSize
-                anchors.centerIn: parent
-                style: BarMetrics.widgetStyle(root.barConfig)
-                pressed: collapsedArrowArea.pressed
-                color: Theme.blend(Theme.secondaryContainer, Theme.onSecondaryContainer, collapsedArrowArea.pressed ? Theme.stateLayerDrag + Theme.stateLayerPressed : collapsedArrowArea.containsMouse ? Theme.stateLayerDrag : 0)
-
-                DIcon {
-                    anchors.centerIn: parent
-                    name: root.collapsedArrowIcon
-                    size: root.trayIconSize
-                    color: Theme.onSecondaryContainer
-                }
-
-                DRipple {
-                    id: collapsedArrowRipple
-                    cornerRadius: collapsedArrowButton.radius
-                }
-
-                MouseArea {
-                    id: collapsedArrowArea
-                    anchors.fill: parent
-                    hoverEnabled: true
-                    cursorShape: Qt.PointingHandCursor
-                    onContainsMouseChanged: {
-                        root.expanderHovered(collapsedArrowArea.containsMouse);
-                        if (collapsedArrowArea.containsMouse)
-                            collapsedArrow.showTooltip();
-                        else
-                            collapsedArrowTooltip.active = false;
-                    }
-                    onPressed: mouse => collapsedArrowRipple.trigger(mouse.x, mouse.y)
-                    onClicked: root.expandRequested()
-                }
-            }
-
-            Loader {
-                id: collapsedArrowTooltip
-                active: false
-                sourceComponent: DTooltip {}
-            }
-
-            function showTooltip() {
-                const screen = root.parentScreen;
-                collapsedArrowTooltip.active = true;
-                const tooltip = collapsedArrowTooltip.item as DTooltip;
-                if (!tooltip || !screen)
-                    return;
-                const text = I18n.tr("Show all tray icons", "tooltip on the arrow that expands a collapsed dock's tray");
-                tooltip.text = text;
-                // A dock's layer window does not start at the screen edge, so map through its surface.
-                const corner = BarWidgetService.registrationForItem(root)?.context?.surface?.screenPoint(collapsedArrow, 0, 0);
-                if (!corner)
-                    return;
-                switch (root.axis?.edge) {
-                case "left":
-                    tooltip.show(text, corner.x + collapsedArrow.width + Theme.spacingS, corner.y + collapsedArrow.height / 2, screen, true, false);
-                    return;
-                case "right":
-                    tooltip.show(text, corner.x - Theme.spacingS, corner.y + collapsedArrow.height / 2, screen, false, true);
-                    return;
-                case "top":
-                    tooltip.show(text, corner.x + collapsedArrow.width / 2, corner.y + collapsedArrow.height + Theme.spacingS, screen, false, false);
-                    return;
-                default:
-                    tooltip.show(text, corner.x + collapsedArrow.width / 2, corner.y - Theme.spacingS - tooltip.implicitHeight, screen, false, false);
-                }
-            }
+            ]
         }
     }
 
@@ -982,7 +1023,14 @@ BasePill {
             spacing: root.configuredIconSpacing
 
             Loader {
+                active: SettingsData.systemTrayQuickMenu && root.innerEndLeads
+                visible: active
+                sourceComponent: quickMenuButtonComponent
+            }
+
+            Loader {
                 active: root.collapsible && root.collapsedArrowLeads
+                visible: active
                 sourceComponent: collapsedArrowComponent
             }
 
@@ -1072,7 +1120,14 @@ BasePill {
 
             Loader {
                 active: root.collapsible && !root.collapsedArrowLeads
+                visible: active
                 sourceComponent: collapsedArrowComponent
+            }
+
+            Loader {
+                active: SettingsData.systemTrayQuickMenu && !root.innerEndLeads
+                visible: active
+                sourceComponent: quickMenuButtonComponent
             }
         }
     }

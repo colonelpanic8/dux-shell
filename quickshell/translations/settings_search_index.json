@@ -5035,27 +5035,6 @@
     "conditionKey": "dockEnabled"
   },
   {
-    "section": "dockPeekExpandOn",
-    "label": "Expand on",
-    "tabIndex": 5,
-    "category": "General",
-    "keywords": [
-      "arrow",
-      "click",
-      "dock",
-      "expand",
-      "general",
-      "hover",
-      "launcher bar",
-      "panel",
-      "peek",
-      "taskbar",
-      "tray"
-    ],
-    "parentLabel": "Dock",
-    "conditionKey": "dockEnabled"
-  },
-  {
     "section": "dockHideDelay",
     "label": "Hide delay",
     "tabIndex": 5,
@@ -10493,6 +10472,38 @@
     "optionFile": "IslandOptions.qml"
   },
   {
+    "section": "barWidgetOption:SystemTrayOptions.qml:16",
+    "label": "Collapse",
+    "tabIndex": 22,
+    "keywords": [],
+    "runtimeType": "barWidgetOption",
+    "optionFile": "SystemTrayOptions.qml"
+  },
+  {
+    "section": "barWidgetOption:SystemTrayOptions.qml:17",
+    "label": "Collapse automatically",
+    "tabIndex": 22,
+    "keywords": [],
+    "runtimeType": "barWidgetOption",
+    "optionFile": "SystemTrayOptions.qml"
+  },
+  {
+    "section": "barWidgetOption:SystemTrayOptions.qml:18",
+    "label": "Collapse by default",
+    "tabIndex": 22,
+    "keywords": [],
+    "runtimeType": "barWidgetOption",
+    "optionFile": "SystemTrayOptions.qml"
+  },
+  {
+    "section": "barWidgetOption:SystemTrayOptions.qml:21",
+    "label": "Collapse in bar",
+    "tabIndex": 22,
+    "keywords": [],
+    "runtimeType": "barWidgetOption",
+    "optionFile": "SystemTrayOptions.qml"
+  },
+  {
     "section": "barWidgetOption:AppsDockOptions.qml:13",
     "label": "Color override",
     "tabIndex": 22,
@@ -10677,6 +10688,14 @@
     "optionFile": "IslandOptions.qml"
   },
   {
+    "section": "barWidgetOption:SystemTrayOptions.qml:13",
+    "label": "Default placement",
+    "tabIndex": 22,
+    "keywords": [],
+    "runtimeType": "barWidgetOption",
+    "optionFile": "SystemTrayOptions.qml"
+  },
+  {
     "section": "barWidgetOption:SystemMonitorOptions.qml:7",
     "label": "Disk usage format",
     "tabIndex": 22,
@@ -10707,6 +10726,22 @@
     "keywords": [],
     "runtimeType": "barWidgetOption",
     "optionFile": "IslandOptions.qml"
+  },
+  {
+    "section": "barWidgetOption:SystemTrayOptions.qml:19",
+    "label": "Expand on hover",
+    "tabIndex": 22,
+    "keywords": [],
+    "runtimeType": "barWidgetOption",
+    "optionFile": "SystemTrayOptions.qml"
+  },
+  {
+    "section": "barWidgetOption:SystemTrayOptions.qml:20",
+    "label": "Expand on hover by default",
+    "tabIndex": 22,
+    "keywords": [],
+    "runtimeType": "barWidgetOption",
+    "optionFile": "SystemTrayOptions.qml"
   },
   {
     "section": "barWidgetOption:IslandOptions.qml:18",
@@ -10933,7 +10968,7 @@
     "optionFile": "AppsDockOptions.qml"
   },
   {
-    "section": "barWidgetOption:SystemTrayOptions.qml:12",
+    "section": "barWidgetOption:SystemTrayOptions.qml:23",
     "label": "Leading icons",
     "tabIndex": 22,
     "keywords": [],
@@ -11045,6 +11080,14 @@
     "optionFile": "SystemMonitorOptions.qml"
   },
   {
+    "section": "barWidgetOption:SystemTrayOptions.qml:15",
+    "label": "Move to a dock when the bar is full",
+    "tabIndex": 22,
+    "keywords": [],
+    "runtimeType": "barWidgetOption",
+    "optionFile": "SystemTrayOptions.qml"
+  },
+  {
     "section": "barWidgetOption:WorkspaceSwitcherOptions.qml:19",
     "label": "Move workspace to this display",
     "tabIndex": 22,
@@ -11117,6 +11160,14 @@
     "optionFile": "AppsDockOptions.qml"
   },
   {
+    "section": "barWidgetOption:SystemTrayOptions.qml:14",
+    "label": "Options button",
+    "tabIndex": 22,
+    "keywords": [],
+    "runtimeType": "barWidgetOption",
+    "optionFile": "SystemTrayOptions.qml"
+  },
+  {
     "section": "barWidgetOption:ClockOptions.qml:2",
     "label": "Order",
     "tabIndex": 22,
@@ -11139,6 +11190,22 @@
     "keywords": [],
     "runtimeType": "barWidgetOption",
     "optionFile": "WorkspaceSwitcherOptions.qml"
+  },
+  {
+    "section": "barWidgetOption:SystemTrayOptions.qml:24",
+    "label": "Pins apply to the bar tray and every dock tray. A tray icon's menu pins it too.",
+    "tabIndex": 22,
+    "keywords": [],
+    "runtimeType": "barWidgetOption",
+    "optionFile": "SystemTrayOptions.qml"
+  },
+  {
+    "section": "barWidgetOption:SystemTrayOptions.qml:11",
+    "label": "Placement",
+    "tabIndex": 22,
+    "keywords": [],
+    "runtimeType": "barWidgetOption",
+    "optionFile": "SystemTrayOptions.qml"
   },
   {
     "section": "barWidgetOption:IslandOptions.qml:13",
@@ -11309,7 +11376,15 @@
     "optionFile": "SystemMonitorOptions.qml"
   },
   {
-    "section": "barWidgetOption:SystemTrayOptions.qml:11",
+    "section": "barWidgetOption:SystemTrayOptions.qml:12",
+    "label": "Show the tray in",
+    "tabIndex": 22,
+    "keywords": [],
+    "runtimeType": "barWidgetOption",
+    "optionFile": "SystemTrayOptions.qml"
+  },
+  {
+    "section": "barWidgetOption:SystemTrayOptions.qml:22",
     "label": "Show when collapsed",
     "tabIndex": 22,
     "keywords": [],
