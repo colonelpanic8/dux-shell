@@ -134,6 +134,19 @@ Item {
                 onValueSelected: value => dock.setOption("autoHideStyle", value)
             }
 
+            SettingsButtonGroupRow {
+                settingKey: "dockPeekExpandOn"
+                tags: ["dock", "peek", "expand", "arrow", "hover", "click", "tray"]
+                resetStore: dock
+                resetKeys: ["peekExpandOn"]
+                text: I18n.tr("Expand on", "dock settings: what expands a collapsed peek dock")
+                visible: root.autoHides && dock.config?.autoHideStyle === "peek"
+                model: [I18n.tr("Arrow hover", "dock peek expand trigger: pointer over the expand arrow"), I18n.tr("Arrow click", "dock peek expand trigger: clicking the expand arrow"), I18n.tr("Dock hover", "dock peek expand trigger: pointer anywhere over the dock")]
+                values: ["arrowHover", "arrowClick", "dockHover"]
+                value: dock.config?.peekExpandOn ?? "arrowHover"
+                onValueSelected: value => dock.setOption("peekExpandOn", value)
+            }
+
             SettingsSliderRow {
                 settingKey: "dockPeekOpacity"
                 tags: ["dock", "peek", "opacity", "collapsed", "transparency"]

@@ -83,8 +83,9 @@ FocusScope {
     readonly property bool interactionActive: editMode || expansionOwner !== null || widgetStrip.interactionActive || (appProvider.item?.interactionActive ?? false)
 
     function revealWidgetItem(item) {
-        revealSticky = true;
-        revealHold.restart();
+        expand();
+        if (!dockMouseArea.containsMouse)
+            revealHold.restart();
         if (item)
             widgetStrip.revealItem(item);
     }
@@ -390,18 +391,49 @@ FocusScope {
         onTriggered: dock.revealSticky = false
     }
 
-    property bool pointerRevealed: false
-    // A collapsed widget's expand request (the tray arrow) skips the reveal delay for the hovering pointer.
-    function expandCollapsed() {
+    readonly property bool peeks: DockConfig.peeks(config)
+    // Asked to expand, by the pointer resting on the expander or an explicit request; dropped once nothing holds the dock.
+    property bool expandRequested: false
+    // revealHold runs only while the pointer is away, so a requested dock stays sticky until the pointer leaves.
+    readonly property bool held: dockMouseArea.containsMouse || revealSticky || interactionActive || contextMenuOpen
+    onHeldChanged: {
+        if (!held)
+            expandRequested = false;
+    }
+    function expand() {
         revealWait.stop();
-        pointerRevealed = true;
+        revealHold.stop();
+        revealSticky = true;
+        expandRequested = true;
+    }
+    // Over the tray arrow of a collapsed dock, which clicking expands at once.
+    property bool expanderHovered: false
+    function hoverExpander(hovered) {
+        expanderHovered = hovered;
+    }
+    readonly property bool pointerOnExpander: {
+        if (!dockMouseArea.containsMouse)
+            return false;
+        if (!peeks || config.peekExpandOn === "dockHover")
+            return true;
+        return config.peekExpandOn === "arrowHover" && expanderHovered;
+    }
+    onPointerOnExpanderChanged: {
+        if (!pointerOnExpander) {
+            revealWait.stop();
+            return;
+        }
+        if (config.revealDelay > 0)
+            revealWait.restart();
+        else
+            expand();
     }
 
     Timer {
         id: revealWait
         interval: dock.config.revealDelay
         repeat: false
-        onTriggered: dock.pointerRevealed = true
+        onTriggered: dock.expand()
     }
 
     // Flip `reveal` false when a modal claims this edge; reuses the slide animation
@@ -421,7 +453,8 @@ FocusScope {
     }
 
     readonly property bool overviewReveal: dock.config.openOnOverview && CompositorService.overviewActiveForScreen(dock._dockScreenName)
-    readonly property bool hoverOrActive: pointerRevealed || dock.interactionActive || contextMenuOpen || revealSticky
+    // Menus and the hide delay hold a peek dock open but never expand it; anything holding a slide dock reveals it.
+    readonly property bool hoverOrActive: expandRequested || editMode || expansionOwner !== null || (!peeks && (interactionActive || contextMenuOpen || revealSticky))
 
     onOverviewRevealChanged: {
         if (overviewReveal && usesConnectedFrameChrome) {
@@ -675,16 +708,8 @@ FocusScope {
             onContainsMouseChanged: {
                 if (containsMouse) {
                     revealHold.stop();
-                    if (dock.config.revealDelay > 0)
-                        revealWait.restart();
-                    else
-                        dock.pointerRevealed = true;
                     return;
                 }
-                revealWait.stop();
-                if (dock.pointerRevealed)
-                    dock.revealSticky = true;
-                dock.pointerRevealed = false;
                 if (dock.autoHide && !dock.contextMenuOpen)
                     revealHold.restart();
             }
