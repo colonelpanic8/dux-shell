@@ -100,8 +100,12 @@ QtObject {
         return host.openExpansion(item);
     }
     function expandCollapsed() {
-        if (kind === "dock" && host.expandCollapsed)
-            host.expandCollapsed();
+        if (kind === "dock" && host.expand)
+            host.expand();
+    }
+    function hoverCollapsedExpander(hovered) {
+        if (kind === "dock" && host.hoverExpander)
+            host.hoverExpander(hovered);
     }
     function dismissExpansion() {
         if (kind === "dock" && host.closeExpansion)

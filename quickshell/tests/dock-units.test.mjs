@@ -149,3 +149,8 @@ test("an auto-hidden dock collapses only in peek style with something to show", 
     assert.equal(config.visibility(true, dock("slide", [tray])), "hidden");
     assert.equal(config.visibility(true, dock("peek", [{ ...tray, enabled: false }, { widgetId: "clock" }])), "hidden");
 });
+
+test("a peek dock expands from its arrow on hover unless told otherwise", () => {
+    const docks = plain(config.normalize([{ id: "unset" }, { id: "click", peekExpandOn: "arrowClick" }, { id: "dock", peekExpandOn: "dockHover" }, { id: "junk", peekExpandOn: "hover" }]));
+    assert.deepEqual(docks.map(dock => dock.peekExpandOn), ["arrowHover", "arrowClick", "dockHover", "arrowHover"]);
+});
