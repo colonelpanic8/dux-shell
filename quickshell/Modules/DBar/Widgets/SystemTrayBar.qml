@@ -115,12 +115,14 @@ BasePill {
 
     function sortByPreferredOrder(items, trigger) {
         void trigger;
-        return TrayMenuManager.sortByPreferredOrder(items, SessionData.trayItemOrder);
+        return TrayMenuManager.sortByPreferredOrder(items, SessionData.trayItemOrder, item => DotfilesService.priority(item));
     }
 
     readonly property var allSortedTrayItems: {
         DotfilesService.state;
-        return sortByPreferredOrder(allTrayItems, _trayOrderTrigger).sort((a, b) => DotfilesService.priority(b) - DotfilesService.priority(a));
+        if (!DotfilesService.loaded)
+            return [];
+        return sortByPreferredOrder(allTrayItems, _trayOrderTrigger);
     }
     readonly property var allSortedTrayItemKeys: allSortedTrayItems.map(item => getTrayItemKey(item))
     readonly property var visibleSortedTrayItems: allSortedTrayItems.filter(item => !root.isTrayIdHidden(root.getTrayItemKey(item)))
