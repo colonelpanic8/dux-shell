@@ -1,6 +1,7 @@
 package freedesktop
 
 import (
+	"context"
 	"fmt"
 	"path/filepath"
 	"strings"
@@ -163,6 +164,7 @@ func (h *screensaverHandler) Inhibit(sender dbus.Sender, appName, reason string)
 		AppName:   appName,
 		Reason:    reason,
 		Peer:      string(sender),
+		Pid:       h.manager.senderPID(sender),
 		StartTime: time.Now().Unix(),
 	}
 
@@ -176,6 +178,21 @@ func (h *screensaverHandler) Inhibit(sender dbus.Sender, appName, reason string)
 	h.manager.NotifyScreensaverSubscribers()
 
 	return cookie, nil
+}
+
+// senderPID lets the shell attribute an inhibitor to the caller's windows; 0 when unknown.
+func (m *Manager) senderPID(sender dbus.Sender) uint32 {
+	if m.sessionConn == nil {
+		return 0
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	defer cancel()
+	var pid uint32
+	if err := m.sessionConn.BusObject().CallWithContext(ctx, "org.freedesktop.DBus.GetConnectionUnixProcessID", 0, string(sender)).Store(&pid); err != nil {
+		log.Debugf("No PID for screensaver inhibitor %s: %v", sender, err)
+		return 0
+	}
+	return pid
 }
 
 func (h *screensaverHandler) UnInhibit(sender dbus.Sender, cookie uint32) *dbus.Error {
