@@ -7,7 +7,10 @@ import Quickshell.Io
 Singleton {
     id: root
 
+    readonly property var log: Log.scoped("DotfilesService")
     property var state: ({})
+    // Trays wait for the first priorities instead of rendering once and then reordering.
+    property bool loaded: false
 
     function trayInfo(item) {
         return state.tray?.[item?.watcherAddress] || {
@@ -51,12 +54,22 @@ Singleton {
             onRead: data => {
                 try {
                     root.state = JSON.parse(data);
+                    root.loaded = true;
                 } catch (error) {
-                    console.warn("Invalid desktop integration state:", error);
+                    root.log.warn("Invalid desktop integration state:", error);
                 }
             }
         }
-        onExited: retry.restart()
+        onExited: {
+            root.loaded = true;
+            retry.restart();
+        }
+    }
+
+    Timer {
+        interval: 3000
+        running: !root.loaded
+        onTriggered: root.loaded = true
     }
 
     Timer {
