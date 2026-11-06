@@ -10933,7 +10933,7 @@
     "optionFile": "AppsDockOptions.qml"
   },
   {
-    "section": "barWidgetOption:SystemTrayOptions.qml:10",
+    "section": "barWidgetOption:SystemTrayOptions.qml:12",
     "label": "Leading icons",
     "tabIndex": 22,
     "keywords": [],
@@ -11309,7 +11309,7 @@
     "optionFile": "SystemMonitorOptions.qml"
   },
   {
-    "section": "barWidgetOption:SystemTrayOptions.qml:9",
+    "section": "barWidgetOption:SystemTrayOptions.qml:11",
     "label": "Show when collapsed",
     "tabIndex": 22,
     "keywords": [],
