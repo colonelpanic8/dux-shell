@@ -20,6 +20,23 @@ test("collapsing follows the stored choice, then the configured default, which i
     assert.deepEqual([placement.collapseEnabled(null, false), placement.collapseEnabled(null, true), placement.collapseEnabled(null, undefined)], [false, true, true]);
 });
 
+const plain = value => JSON.parse(JSON.stringify(value));
+
+test("pins keep distinct keys in pin order and never the empty key", () => {
+    assert.deepEqual(plain(placement.pins(["a", "", "b", "a", 3, null, "b"])), ["a", "b"]);
+    assert.deepEqual(plain(placement.pins(undefined)), []);
+    assert.deepEqual(plain(placement.pins("a")), []);
+});
+
+test("pinning appends once, unpinning removes, and toggling flips", () => {
+    assert.deepEqual(plain(placement.withPin(["a"], "b", true)), ["a", "b"]);
+    assert.deepEqual(plain(placement.withPin(["a", "b"], "a", true)), ["a", "b"]);
+    assert.deepEqual(plain(placement.withPin(["a", "b", "a"], "a", false)), ["b"]);
+    assert.deepEqual(plain(placement.withPin(["a"], "", true)), ["a"]);
+    assert.deepEqual(plain(placement.withPinToggled(["a", "b"], "a")), ["b"]);
+    assert.deepEqual(plain(placement.withPinToggled(null, "a")), ["a"]);
+});
+
 test("with both surfaces the tray lives where it was placed and can move", () => {
     assert.deepEqual(resolve({ ...both, placement: "dock" }), { home: "dock", host: "dock", routable: false, toggle: true });
     assert.deepEqual(resolve({ ...both, placement: "bar" }), { home: "bar", host: "bar", routable: false, toggle: true });

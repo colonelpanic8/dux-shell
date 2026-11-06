@@ -11,6 +11,7 @@ Singleton {
 
     readonly property string placement: TrayPlacement.normalize(SessionData.systemTrayPlacement, SettingsData.systemTrayDefaultPlacement)
     readonly property bool collapseEnabled: TrayPlacement.collapseEnabled(SessionData.trayCollapseEnabled, SettingsData.trayCollapseDefault)
+    readonly property var pinnedKeys: TrayPlacement.pins(SessionData.trayPinnedItems)
     // Keyed by screen and bar, so bars sharing a screen never overwrite each other.
     property var routedBars: ({})
 
@@ -55,6 +56,20 @@ Singleton {
     function toggleCollapse() {
         setCollapseEnabled(!root.collapseEnabled);
         return root.collapseEnabled;
+    }
+
+    function setPinned(key, pinned) {
+        if (!key)
+            return false;
+        SessionData.set("trayPinnedItems", TrayPlacement.withPin(SessionData.trayPinnedItems, key, pinned));
+        return true;
+    }
+
+    function togglePin(key) {
+        if (!key)
+            return false;
+        SessionData.set("trayPinnedItems", TrayPlacement.withPinToggled(SessionData.trayPinnedItems, key));
+        return true;
     }
 
     function setBarRouted(screenName, barId, routed) {

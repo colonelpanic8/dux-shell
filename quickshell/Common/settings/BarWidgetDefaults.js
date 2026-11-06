@@ -185,7 +185,6 @@ var DEFAULTS = {
         trayAutoOverflow: true,
         trayMaxVisibleItems: 0,
         trayIconSpacing: 0,
-        trayPinnedItems: [],
         trayCollapsedItemCount: 3,
         trayCollapseInBar: false,
         trayExpandOn: "arrowHover"

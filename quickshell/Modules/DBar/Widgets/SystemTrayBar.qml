@@ -42,14 +42,10 @@ BasePill {
     readonly property bool collapsed: surfaceKind === "dock" ? hostCollapsed : collapsesInBar && !barExpanded
     signal expandRequested
     signal expanderHovered(bool hovered)
-    readonly property var pinnedTrayKeys: {
-        const keys = SettingsData.widgetOption("systemTray", widgetData, "trayPinnedItems");
-        return Array.isArray(keys) ? keys : [];
-    }
     readonly property int collapsedItemCount: Math.max(0, Math.min(10, Number(SettingsData.widgetOption("systemTray", widgetData, "trayCollapsedItemCount")) || 0))
     // By rendered position, not key: items without an id all share the empty key.
     function keptWhenCollapsed(key, index) {
-        return index < collapsedItemCount || (key !== "" && pinnedTrayKeys.includes(key));
+        return index < collapsedItemCount || TrayPlacementService.pinnedKeys.includes(key);
     }
     readonly property bool collapsedArrowNeeded: hiddenBarItems.length > 0 || displayedMainBarItems.some((entry, index) => !keptWhenCollapsed(entry.key, index))
     readonly property bool collapsedArrowShown: collapsed && collapsedArrowNeeded

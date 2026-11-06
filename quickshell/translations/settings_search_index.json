@@ -11112,6 +11112,14 @@
     "optionFile": "WorkspaceSwitcherOptions.qml"
   },
   {
+    "section": "barWidgetOption:SystemTrayOptions.qml:21",
+    "label": "Pins apply to the bar tray and every dock tray. A tray icon's menu pins it too.",
+    "tabIndex": 22,
+    "keywords": [],
+    "runtimeType": "barWidgetOption",
+    "optionFile": "SystemTrayOptions.qml"
+  },
+  {
     "section": "barWidgetOption:SystemTrayOptions.qml:9",
     "label": "Placement",
     "tabIndex": 22,
