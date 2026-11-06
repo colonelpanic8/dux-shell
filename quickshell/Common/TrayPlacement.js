@@ -13,6 +13,24 @@ function collapseEnabled(stored, fallback) {
     return typeof stored === "boolean" ? stored : fallback !== false;
 }
 
+// Distinct keys in pin order. An item without an id has the empty key, which never pins.
+function pins(stored) {
+    if (!Array.isArray(stored))
+        return [];
+    return stored.filter((key, index) => typeof key === "string" && key !== "" && stored.indexOf(key) === index);
+}
+
+function withPin(stored, key, pinned) {
+    const current = pins(stored);
+    if (!pinned)
+        return current.filter(other => other !== key);
+    return pins(current.concat([key]));
+}
+
+function withPinToggled(stored, key) {
+    return withPin(stored, key, !pins(stored).includes(key));
+}
+
 function flipped(placement) {
     return placement === "dock" ? "bar" : "dock";
 }
