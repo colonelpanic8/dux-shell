@@ -14,6 +14,7 @@ Column {
     readonly property bool trayTinted: ["primary", "secondary"].includes(SettingsData.systemTrayIconTintMode || "none")
     readonly property var pinnedKeys: root.page.value("trayPinnedItems") ?? []
     // Live items in tray order, then pinned keys whose app is not running so they can still be unpinned.
+    // Items without an id have no key, so they cannot be pinned.
     readonly property var pinRows: {
         const live = TrayMenuManager.filterEnvHidden(SystemTray.items.values);
         const rows = TrayMenuManager.sortByPreferredOrder(live, SessionData.trayItemOrder).map(item => ({
@@ -24,7 +25,7 @@ Column {
         return rows.concat(pinnedKeys.filter(key => !keys.includes(key)).map(key => ({
                     key,
                     title: key
-                })));
+                }))).filter(row => row.key !== "");
     }
 
     width: parent?.width ?? 0
