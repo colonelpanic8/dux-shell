@@ -7,6 +7,7 @@ Item {
     id: root
 
     property var parentModal: null
+    readonly property bool autoHides: (dock.config?.autoHide ?? false) || (dock.config?.smartAutoHide ?? false)
 
     DockSelectionState {
         id: dock
@@ -57,18 +58,31 @@ Item {
 
             SettingsButtonGroupRow {
                 resetStore: dock
-                resetKeys: ["taskbarAlign"]
+                resetKeys: ["align"]
                 readonly property var alignments: ["start", "center", "end"]
 
                 text: I18n.tr("Alignment", "row label, where taskbar dock items align")
-                enabled: dock.config?.mode === "taskbar"
                 model: dock.isVertical ? [I18n.tr("Top"), I18n.tr("Center", "noun, taskbar dock alignment option between start and end"), I18n.tr("Bottom")] : [I18n.tr("Left"), I18n.tr("Center"), I18n.tr("Right")]
-                currentIndex: Math.max(0, alignments.indexOf(dock.config?.taskbarAlign ?? "center"))
+                currentIndex: Math.max(0, alignments.indexOf(dock.config?.align ?? "center"))
                 onSelectionChanged: (index, selected) => {
                     if (!selected)
                         return;
-                    dock.setOption("taskbarAlign", alignments[index]);
+                    dock.setOption("align", alignments[index]);
                 }
+            }
+
+            SettingsSliderRow {
+                settingKey: "dockAlignOffset"
+                tags: ["dock", "alignment", "offset", "corner", "position"]
+                resetStore: dock
+                resetKeys: ["alignOffset"]
+                text: I18n.tr("Offset", "dock settings: distance from the aligned screen end")
+                visible: dock.config?.mode !== "taskbar" && dock.config?.align !== "center"
+                unit: "px"
+                minimum: 0
+                maximum: 1000
+                value: dock.config?.alignOffset ?? 0
+                onSliderDragFinished: finalValue => dock.setOption("alignOffset", finalValue)
             }
         }
 
@@ -104,6 +118,64 @@ Item {
                         dock.setOption("autoHide", false);
                     dock.setOption("smartAutoHide", checked);
                 }
+            }
+
+            SettingsButtonGroupRow {
+                settingKey: "dockAutoHideStyle"
+                tags: ["dock", "autohide", "peek", "slide", "collapse", "corner", "tray"]
+                resetStore: dock
+                resetKeys: ["autoHideStyle"]
+                text: I18n.tr("Hide style", "dock settings: whether an auto-hidden dock slides away or stays collapsed")
+                description: dock.config?.autoHideStyle === "peek" ? I18n.tr("Stays on screen showing only widgets marked to show when collapsed", "dock peek hide style description") : ""
+                visible: root.autoHides
+                model: [I18n.tr("Slide", "dock hide style: slides off screen"), I18n.tr("Peek", "dock hide style: stays on screen collapsed")]
+                values: ["slide", "peek"]
+                value: dock.config?.autoHideStyle ?? "slide"
+                onValueSelected: value => dock.setOption("autoHideStyle", value)
+            }
+
+            SettingsSliderRow {
+                settingKey: "dockPeekOpacity"
+                tags: ["dock", "peek", "opacity", "collapsed", "transparency"]
+                resetStore: dock
+                resetKeys: ["peekOpacity"]
+                text: I18n.tr("Opacity")
+                visible: root.autoHides && dock.config?.autoHideStyle === "peek"
+                unit: "%"
+                minimum: 0
+                maximum: 100
+                value: Math.round((dock.config?.peekOpacity ?? 0.6) * 100)
+                onSliderDragFinished: finalValue => dock.setOption("peekOpacity", finalValue / 100)
+            }
+
+            SettingsSliderRow {
+                settingKey: "dockRevealDelay"
+                tags: ["dock", "autohide", "reveal", "delay", "hover"]
+                resetStore: dock
+                resetKeys: ["revealDelay"]
+                text: I18n.tr("Open delay")
+                visible: root.autoHides
+                unit: "ms"
+                minimum: 0
+                maximum: 2000
+                step: 50
+                value: dock.config?.revealDelay ?? 0
+                onSliderDragFinished: finalValue => dock.setOption("revealDelay", finalValue)
+            }
+
+            SettingsSliderRow {
+                settingKey: "dockHideDelay"
+                tags: ["dock", "autohide", "hide", "delay"]
+                resetStore: dock
+                resetKeys: ["hideDelay"]
+                text: I18n.tr("Hide delay")
+                visible: root.autoHides
+                unit: "ms"
+                minimum: 0
+                maximum: 5000
+                step: 50
+                value: dock.config?.hideDelay ?? 250
+                onSliderDragFinished: finalValue => dock.setOption("hideDelay", finalValue)
             }
         }
 
