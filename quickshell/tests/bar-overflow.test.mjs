@@ -106,3 +106,14 @@ test("a hidden flexible widget returns once its minimum fits the margin", () => 
     assert.deepEqual(plain(result.sizes.left), [100, 68]);
     assert.deepEqual(plain(solve(...sections, { length: 420 }, { left: [1] }).hidden.left), [1]);
 });
+
+test("a widget shown elsewhere while hidden reserves no overflow button, and returns only past the margin", () => {
+    const routed = { size: 90, mode: "auto", priority: -Infinity, elsewhere: true };
+    const result = solve([entry(100), routed], [entry(80)], []);
+    assert.deepEqual(plain(result.hidden.left), [1]);
+    assert.equal(result.layouts.left.buttonPosition, null);
+    assert.equal(result.layouts.left.totalSize, 100);
+    const sections = [[entry(100), routed], [entry(80)], []];
+    assert.deepEqual(plain(solve(...sections, { length: 480 }, { left: [1] }).hidden.left), [1]);
+    assert.deepEqual(plain(solve(...sections, { length: 500 }, { left: [1] }).hidden.left), []);
+});

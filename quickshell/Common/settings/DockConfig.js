@@ -4,7 +4,6 @@ var EDGES = ["top", "bottom", "left", "right"];
 var MAGNIFICATION_PROFILES = ["parabolic", "cosine", "gaussian"];
 var DEFAULT_MAGNIFICATION_PROFILE = "parabolic";
 var ALIGNMENTS = ["start", "center", "end"];
-var PEEK_EXPAND_TRIGGERS = ["arrowHover", "arrowClick", "dockHover"];
 
 function clone(value) {
     return JSON.parse(JSON.stringify(value));
@@ -34,7 +33,6 @@ function create(id, name) {
         smartAutoHide: false,
         autoHideStyle: "slide",
         peekOpacity: 1,
-        peekExpandOn: "arrowHover",
         revealDelay: 0,
         hideDelay: 250,
         useOverlayLayer: false,
@@ -115,7 +113,6 @@ function normalize(configs, presets) {
         result.alignOffset = Math.round(bounded(result.alignOffset, 0, 0, 4096));
         result.widgetExpansion = config.widgetExpansion === "inline" ? "inline" : "popout";
         result.autoHideStyle = config.autoHideStyle === "peek" ? "peek" : "slide";
-        result.peekExpandOn = PEEK_EXPAND_TRIGGERS.includes(config.peekExpandOn) ? config.peekExpandOn : defaults.peekExpandOn;
         result.peekOpacity = bounded(result.peekOpacity, defaults.peekOpacity, 0, 1);
         result.revealDelay = Math.round(bounded(result.revealDelay, defaults.revealDelay, 0, 2000));
         result.hideDelay = Math.round(bounded(result.hideDelay, defaults.hideDelay, 0, 5000));
@@ -177,10 +174,18 @@ function peeks(config) {
     return config.autoHideStyle === "peek" && config.widgets.some(widget => widget.enabled !== false && widget.showWhenCollapsed === true);
 }
 
-function visibility(autoHidden, config) {
+// The tray collapses with a peek dock only while it stays on the collapsed dock.
+function trayCollapsible(config) {
+    return config.autoHideStyle === "peek" && config.widgets.some(widget => widget.widgetId === "systemTray" && widget.enabled !== false && widget.showWhenCollapsed === true);
+}
+
+// With tray collapsing off, a peek dock holding the tray stays expanded instead of collapsing around it.
+function visibility(autoHidden, config, trayCollapseEnabled) {
     if (!autoHidden)
         return "expanded";
-    return peeks(config) ? "collapsed" : "hidden";
+    if (!peeks(config))
+        return "hidden";
+    return trayCollapseEnabled || !trayCollapsible(config) ? "collapsed" : "expanded";
 }
 
 function matches(config, screen) {
