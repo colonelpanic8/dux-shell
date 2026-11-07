@@ -24,6 +24,10 @@ Item {
     property real sectionCrossOffset: 0
     property real reservedStart: NaN
     property real reservedEnd: NaN
+    // While the island is open or moving, overflow it causes never sends the tray to a dock.
+    property bool islandSettled: true
+    property bool trayRouted: false
+    readonly property bool trayRoutesAway: islandSettled || trayRouted
     readonly property bool fitToWidgets: _hasBarWindow && (barWindow.fitToWidgets ?? false)
     readonly property real sectionGap: (_barIsVertical ? vLeftSection : hLeftSection).widgetSpacing
     readonly property real leadingImplicitSize: _barIsVertical ? vLeftSection.implicitHeight : hLeftSection.implicitWidth
@@ -54,6 +58,9 @@ Item {
     onReservedEndChanged: requestOverflowLayout()
     onFittedStartMarginChanged: requestOverflowLayout()
     onFittedEndMarginChanged: requestOverflowLayout()
+    onIslandSettledChanged: requestOverflowLayout()
+    onTrayRoutedChanged: TrayPlacementService.setBarRouted(_barScreenName, barConfig?.id ?? "", trayRouted)
+    Component.onDestruction: TrayPlacementService.setBarRouted(_barScreenName, barConfig?.id ?? "", false)
 
     function requestOverflowLayout() {
         overflowTimer.restart();
@@ -91,6 +98,8 @@ Item {
         };
         if (JSON.stringify(next) !== JSON.stringify(overflowPlan))
             overflowPlan = next;
+        if (islandSettled)
+            trayRouted = names.some(name => result.hidden[name].some(index => sections[name][index].elsewhere));
     }
 
     Timer {
