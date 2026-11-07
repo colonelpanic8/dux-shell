@@ -705,6 +705,8 @@ Singleton {
 
         onNotification: notif => {
             notif.tracked = true;
+            if (IdleService.monitorsOff)
+                root.log.info("Notification while displays off from:", notif.appName || "unknown");
 
             const policy = _evaluateNotificationPolicy(notif);
             if (policy.drop) {
