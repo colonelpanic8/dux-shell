@@ -517,8 +517,10 @@ Item {
             widgetData: parent.widgetData
             isAutoHideBar: root.surfaceContext.config?.autoHide ?? false
             isAtBottom: surfaceContext.axis?.edge === "bottom"
-            collapsed: root.surfaceContext.collapsed
+            hostCollapsed: root.surfaceContext.collapsed
+            surfaceKind: root.surfaceContext.kind
             onExpandRequested: root.surfaceContext.expandCollapsed()
+            onCollapseRequested: root.surfaceContext.collapseExpanded()
             onExpanderHovered: hovered => root.surfaceContext.hoverCollapsedExpander(hovered)
             visible: SettingsData.getFilteredScreens("systemTray").includes(surfaceContext.screen) && SystemTray.items.values.length > 0
         }
