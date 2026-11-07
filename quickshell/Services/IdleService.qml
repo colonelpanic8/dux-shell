@@ -118,6 +118,7 @@ Singleton {
 
     function triggerIdleNow() {
         log.info("Idle triggered manually:", firstIdleActions.join(", "));
+        dpmsReason = "go idle now";
         for (const action of firstIdleActions) {
             switch (action) {
             case "lock":
@@ -141,6 +142,7 @@ Singleton {
     }
 
     function _rearmIdleMonitors() {
+        log.info("Idle timers restarted" + (monitorsOff ? " while displays off" : ""));
         monitorOffMonitor.enabled = false;
         postLockMonitorOffMonitor.enabled = false;
         lockMonitor.enabled = false;
@@ -161,6 +163,8 @@ Singleton {
 
     property var lockComponent: null
     property bool monitorsOff: false
+    // Why monitorsOff is about to change; logged with the change.
+    property string dpmsReason: ""
     property bool isShellLocked: false
     property bool isSessionLockSecure: false
     property bool lockPowerOffRequested: false
@@ -184,6 +188,8 @@ Singleton {
         onIsIdleChanged: {
             if (!enabled)
                 return;
+            root.log.info("Display-off stage", isIdle ? "reached" : "reset by activity");
+            root.dpmsReason = isIdle ? "idle for " + root.monitorTimeout + "s" : "activity";
             if (isIdle) {
                 if (SettingsData.fadeToDpmsEnabled) {
                     root.fadeToDpmsRequested();
@@ -207,6 +213,8 @@ Singleton {
         onIsIdleChanged: {
             if (!enabled)
                 return;
+            root.log.info("Post-lock display-off stage", isIdle ? "reached" : "reset by activity");
+            root.dpmsReason = isIdle ? "locked and idle for " + root.postLockMonitorTimeout + "s" : "activity on lock screen";
             if (isIdle) {
                 root.requestMonitorOff();
             } else {
@@ -223,6 +231,7 @@ Singleton {
         onIsIdleChanged: {
             if (!enabled)
                 return;
+            root.log.info("Lock stage", isIdle ? "reached" : "reset by activity");
             if (isIdle) {
                 if (SettingsData.fadeToLockEnabled) {
                     root.fadeToLockRequested();
@@ -245,6 +254,7 @@ Singleton {
         onIsIdleChanged: {
             if (!enabled)
                 return;
+            root.log.info("Suspend stage", isIdle ? "reached" : "reset by activity");
             if (isIdle)
                 root.requestSuspend();
         }
@@ -308,8 +318,53 @@ Singleton {
         onIsIdleChanged: {
             if (!enabled)
                 return;
-            if (!isIdle && root.monitorsOff)
+            if (!isIdle && root.monitorsOff) {
+                root.dpmsReason = "input while displays off";
                 root.requestMonitorOn();
+            }
+        }
+    }
+
+    onMonitorsOffChanged: {
+        log.info(monitorsOff ? "Displays off:" : "Displays on:", dpmsReason || "unknown");
+        dpmsReason = "";
+        displaysLitWhileOff = [];
+    }
+
+    // Outputs the compositor reports lit while monitorsOff, e.g. after a hotplug.
+    property var displaysLitWhileOff: []
+
+    Timer {
+        interval: 30000
+        repeat: true
+        running: root.monitorsOff && CompositorService.isHyprland
+        // lastIpcObject predates the DPMS change until the first refresh lands.
+        property bool refreshed: false
+        onRunningChanged: refreshed = false
+        onTriggered: {
+            Hyprland.refreshMonitors();
+            if (!refreshed) {
+                refreshed = true;
+                return;
+            }
+            const lit = Hyprland.monitors.values.filter(m => m.lastIpcObject?.dpmsStatus === true).map(m => m.name);
+            if (lit.join() !== root.displaysLitWhileOff.join()) {
+                if (lit.length > 0)
+                    root.log.warn("Displays lit while idle has them off:", lit.join(", "));
+                else
+                    root.log.info("Displays dark again");
+                root.displaysLitWhileOff = lit;
+            }
+        }
+    }
+
+    Connections {
+        target: Hyprland
+        enabled: root.monitorsOff && CompositorService.isHyprland
+
+        function onRawEvent(event) {
+            if (event.name === "monitoraddedv2" || event.name === "monitorremoved")
+                root.log.info("Display", event.name === "monitorremoved" ? "disconnected" : "connected", "while displays off:", event.data);
         }
     }
 
