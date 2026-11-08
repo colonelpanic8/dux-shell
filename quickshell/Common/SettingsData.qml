@@ -916,6 +916,19 @@ Singleton {
     readonly property real barInnerPaddingDefault: barConfigDefault("innerPadding")
     readonly property real barWidgetPaddingDefault: barConfigDefault("widgetPadding")
 
+    function barInnerPadding(bc, screen) {
+        const target = LayoutResolver.barTargetThickness(bc, screen);
+        if (!(target > 0))
+            return bc?.innerPadding ?? barInnerPaddingDefault;
+        // Matches the Size slider range.
+        let best = -8;
+        for (let padding = -7; padding <= 24; padding++) {
+            if (Math.abs(Theme.barThickness(padding, 1) - target) < Math.abs(Theme.barThickness(best, 1) - target))
+                best = padding;
+        }
+        return best;
+    }
+
     function islandSettings(bc) {
         if (!bc)
             return {};
@@ -1033,11 +1046,11 @@ Singleton {
         return edge === "left" || edge === "right";
     }
 
-    function islandStripThickness(bc) {
-        return LayoutResolver.islandThickness(islandSettings(bc), islandDefaultsFor(bc));
+    function islandStripThickness(bc, screen) {
+        return LayoutResolver.islandThickness(islandSettings(bc), islandDefaultsFor(bc), screen);
     }
-    function islandReserveThickness(bc) {
-        return LayoutResolver.islandReserve(islandSettings(bc), islandDefaultsFor(bc));
+    function islandReserveThickness(bc, screen) {
+        return LayoutResolver.islandReserve(islandSettings(bc), islandDefaultsFor(bc), screen);
     }
     readonly property var _islandHomeGroupIds: ["workspaces", "media", "clock", "weather", "status", "volume", "brightness", "notifications", "privacy", "keyboardLayout", "tray"]
     readonly property var _islandHomeLayoutDefault: [
