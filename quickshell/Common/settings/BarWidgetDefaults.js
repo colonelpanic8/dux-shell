@@ -185,7 +185,9 @@ var DEFAULTS = {
         trayPopupSingleLine: true,
         trayAutoOverflow: true,
         trayMaxVisibleItems: 0,
-        trayIconSpacing: 0
+        trayIconSpacing: 0,
+        trayPinnedItems: [],
+        trayCollapsedItemCount: 3
     },
     battery: {
         showBatteryPercent: true,
