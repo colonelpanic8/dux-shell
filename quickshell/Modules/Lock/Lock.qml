@@ -50,6 +50,7 @@ Scope {
     }
 
     function applyMonitorsOff() {
+        IdleService.dpmsReason = "lock screen power-off";
         IdleService.monitorsOff = true;
         CompositorService.powerOffMonitors();
         lockWakeAllowed = false;
@@ -390,6 +391,7 @@ Scope {
             lockWakeAllowed = false;
             resetPowerOffFade();
             if (IdleService.monitorsOff) {
+                IdleService.dpmsReason = "unlocked";
                 IdleService.monitorsOff = false;
                 CompositorService.powerOnMonitors();
             }
@@ -516,6 +518,7 @@ Scope {
                 return;
             }
             if (lockWakeAllowed) {
+                IdleService.dpmsReason = "input on lock screen";
                 IdleService.monitorsOff = false;
                 CompositorService.powerOnMonitors();
             } else {
