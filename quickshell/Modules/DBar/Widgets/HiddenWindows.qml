@@ -40,7 +40,11 @@ BasePill {
         };
     }
 
-    visible: buckets.length > 0
+    readonly property bool hasBuckets: buckets.length > 0
+    visible: hasBuckets
+    // Empty, it takes no room, so a dock holding only this widget hides instead of showing its padding.
+    width: hasBuckets ? (isVerticalOrientation ? barThickness : visualWidth) : 0
+    height: hasBuckets ? (isVerticalOrientation ? visualHeight : barThickness) : 0
     enableBackgroundHover: false
     enableCursor: false
 
