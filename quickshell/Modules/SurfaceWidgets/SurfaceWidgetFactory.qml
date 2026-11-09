@@ -136,6 +136,7 @@ Item {
             workspaceSwitcherComponent,
             focusedWindowComponent,
             runningAppsComponent,
+            minimizedWindowsComponent,
             appsDockComponent,
             clockComponent,
             mediaComponent,
@@ -345,6 +346,22 @@ Item {
         id: runningAppsComponent
 
         RunningApps {
+            widgetThickness: surfaceContext.widgetThickness
+            barThickness: surfaceContext.thickness
+            barSpacing: barConfig?.spacing ?? 4
+            section: root.getWidgetSection(parent)
+            parentScreen: surfaceContext.screen
+            topBar: root
+            barConfig: root.surfaceContext.config
+            isAutoHideBar: root.surfaceContext.config?.autoHide ?? false
+        }
+    }
+
+    Component {
+        id: minimizedWindowsComponent
+
+        RunningApps {
+            minimizedOnly: true
             widgetThickness: surfaceContext.widgetThickness
             barThickness: surfaceContext.thickness
             barSpacing: barConfig?.spacing ?? 4
