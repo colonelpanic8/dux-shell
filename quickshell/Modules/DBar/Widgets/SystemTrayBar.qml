@@ -365,8 +365,8 @@ BasePill {
         }
     }
 
-    readonly property real trayIconSize: Theme.barIconSize(root.barThickness, undefined, true, root.barConfig?.iconScale)
-    readonly property real trayItemSize: trayIconSize + Theme.spacingXS + Theme.spacingXXS
+    readonly property real trayIconSize: Math.max(0, Math.min(Theme.barIconSize(root.barThickness, undefined, true, root.barConfig?.iconScale), root.widgetThickness - Theme.spacingXS * 2))
+    readonly property real trayItemSize: trayIconSize + Theme.spacingXS
 
     readonly property string autoBarShadowDirection: {
         const edge = root.axis?.edge;
