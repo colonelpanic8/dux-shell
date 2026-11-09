@@ -611,11 +611,8 @@ var LOCAL_SPEC = {
     systemTrayIconTintStrength: {
         def: 135
     },
-    windowBucketPlacements: {
-        def: {
-            minimized: "bar",
-            scratchpad: "bar"
-        }
+    windowBucketPlacement: {
+        def: "bar"
     },
     controlCenterColumns: {
         def: 8
