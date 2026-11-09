@@ -208,17 +208,38 @@ function pick(eligible, screen, screens, screenMatches) {
     return eligible.find(config => config.showOnLastDisplay && config.screenPreferences.length > 0) || null;
 }
 
-// One dock may claim each edge of a screen, so resolution runs per edge rather than per screen.
-// An enabled dock owns its edge; a dock shown only in the overview takes an edge nothing else holds.
+// A space-reserving dock pushes every window back from its edge.
+function reserves(config) {
+    return config.enabled === true && !config.autoHide && !config.smartAutoHide;
+}
+
+// Docks share an edge in separate slots: a taskbar spans the edge, a compact dock holds its alignment.
+// Two reserving docks would stack their exclusive zones, so an edge reserves for one dock at most.
+function clash(a, b) {
+    if (a.position !== b.position)
+        return false;
+    if (a.mode === "taskbar" || b.mode === "taskbar" || a.align === b.align)
+        return true;
+    return reserves(a) && reserves(b);
+}
+
+// Enabled docks fill an edge's slots in order; a dock shown only in the overview takes an edge nothing else holds.
 function resolveEdge(configs, screen, screens, edge, screenMatches) {
     if (!screen)
-        return null;
-    const onEdge = configs.filter(config => EDGES[config.position] === edge);
-    return pick(onEdge.filter(config => config.enabled), screen, screens, screenMatches) ?? pick(onEdge.filter(config => config.openOnOverview), screen, screens, screenMatches);
+        return [];
+    let remaining = configs.filter(config => EDGES[config.position] === edge);
+    const chosen = [];
+    for (;;) {
+        const next = pick(remaining.filter(config => config.enabled), screen, screens, screenMatches) ?? (chosen.length ? null : pick(remaining.filter(config => config.openOnOverview), screen, screens, screenMatches));
+        if (!next)
+            return chosen;
+        chosen.push(next);
+        remaining = remaining.filter(config => config !== next && !clash(config, next));
+    }
 }
 
 function resolveAll(configs, screen, screens, screenMatches) {
-    return EDGES.map(edge => resolveEdge(configs, screen, screens, edge, screenMatches)).filter(Boolean);
+    return EDGES.flatMap(edge => resolveEdge(configs, screen, screens, edge, screenMatches));
 }
 
 function resolve(configs, screen, screens, screenMatches) {
