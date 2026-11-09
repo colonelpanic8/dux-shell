@@ -234,7 +234,7 @@ function resolveEdge(configs, screen, screens, edge, screenMatches) {
 }
 
 function resolveAll(configs, screen, screens, screenMatches) {
-    return EDGES.flatMap(edge => resolveEdge(configs, screen, screens, edge, screenMatches));
+    return [].concat(...EDGES.map(edge => resolveEdge(configs, screen, screens, edge, screenMatches)));
 }
 
 function resolve(configs, screen, screens, screenMatches) {
