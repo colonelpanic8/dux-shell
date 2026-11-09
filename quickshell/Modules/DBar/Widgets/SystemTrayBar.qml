@@ -49,6 +49,8 @@ BasePill {
     function activateInlineTrayItem(trayItem, anchorItem) {
         if (!trayItem)
             return;
+        if (DotfilesService.activate(trayItem))
+            return;
         if (!trayItem.onlyMenu) {
             trayItem.activate();
             return;
@@ -113,10 +115,15 @@ BasePill {
 
     function sortByPreferredOrder(items, trigger) {
         void trigger;
-        return TrayMenuManager.sortByPreferredOrder(items, SessionData.trayItemOrder);
+        return TrayMenuManager.sortByPreferredOrder(items, SessionData.trayItemOrder, item => DotfilesService.priority(item));
     }
 
-    readonly property var allSortedTrayItems: sortByPreferredOrder(allTrayItems, _trayOrderTrigger)
+    readonly property var allSortedTrayItems: {
+        DotfilesService.state;
+        if (!DotfilesService.loaded)
+            return [];
+        return sortByPreferredOrder(allTrayItems, _trayOrderTrigger);
+    }
     readonly property var allSortedTrayItemKeys: allSortedTrayItems.map(item => getTrayItemKey(item))
     readonly property var visibleSortedTrayItems: allSortedTrayItems.filter(item => !root.isTrayIdHidden(root.getTrayItemKey(item)))
     readonly property int automaticVisibleItemLimit: {
@@ -135,7 +142,11 @@ BasePill {
         const slots = Math.floor((logicalPrimary * maxTrayShare) / itemSize);
         return Math.max(2, Math.min(10, Math.min(root.visibleSortedTrayItems.length, slots)));
     }
-    readonly property var mainBarItemsRaw: visibleSortedTrayItems.slice(0, automaticVisibleItemLimit)
+    readonly property bool edgeFirst: !useOverflowPopup && section === "right"
+    readonly property var mainBarItemsRaw: {
+        const items = visibleSortedTrayItems.slice(0, automaticVisibleItemLimit);
+        return edgeFirst ? items.reverse() : items;
+    }
     readonly property var mainBarItems: mainBarItemsRaw.map((item, idx) => ({
                 key: getTrayItemKey(item),
                 item: item
@@ -143,7 +154,10 @@ BasePill {
     readonly property var autoOverflowBarItems: visibleSortedTrayItems.slice(automaticVisibleItemLimit)
     readonly property var manualHiddenBarItems: allSortedTrayItems.filter(item => root.isTrayIdHidden(root.getTrayItemKey(item)))
     readonly property var hiddenBarItemKeys: manualHiddenBarItems.concat(autoOverflowBarItems).map(item => root.getTrayItemKey(item))
-    readonly property var hiddenBarItems: allSortedTrayItems.filter(item => hiddenBarItemKeys.indexOf(root.getTrayItemKey(item)) !== -1)
+    readonly property var hiddenBarItems: {
+        const items = allSortedTrayItems.filter(item => hiddenBarItemKeys.indexOf(root.getTrayItemKey(item)) !== -1);
+        return edgeFirst ? items.reverse() : items;
+    }
     readonly property string trayIconTintMode: {
         const configuredMode = SettingsData.systemTrayIconTintMode || "none";
         switch (configuredMode) {
@@ -351,8 +365,8 @@ BasePill {
         }
     }
 
-    readonly property real trayIconSize: Theme.barIconSize(root.barThickness, undefined, root.barConfig?.maximizeWidgetIcons, root.barConfig?.iconScale)
-    readonly property real trayItemSize: trayIconSize + Theme.spacingXS + Theme.spacingXXS
+    readonly property real trayIconSize: Math.max(0, Math.min(Theme.barIconSize(root.barThickness, undefined, true, root.barConfig?.iconScale), root.widgetThickness - Theme.spacingXS * 2))
+    readonly property real trayItemSize: trayIconSize + Theme.spacingXS
 
     readonly property string autoBarShadowDirection: {
         const edge = root.axis?.edge;
@@ -565,6 +579,7 @@ BasePill {
         id: inlineExpandedTrayItemDelegate
 
         Item {
+            id: inlineDelegateRoot
             property var trayItem: modelData.item
             property string itemKey: modelData.key
             property string iconSource: root.trayIconSourceFor(trayItem)
@@ -610,7 +625,7 @@ BasePill {
                 TrayItemIcon {
                     anchors.fill: parent
                     tray: root
-                    trayItem: trayItem
+                    trayItem: inlineDelegateRoot.trayItem
                     source: iconSource
                 }
 
@@ -622,12 +637,21 @@ BasePill {
 
             MouseArea {
                 id: inlineTrayItemArea
+                onWheel: event => {
+                    if (event.modifiers & Qt.ShiftModifier) {
+                        DotfilesService.adjustPriority(trayItem, event.angleDelta.y > 0 ? 1 : -1);
+                        event.accepted = true;
+                    } else {
+                        trayItem.scroll(event.angleDelta.y || event.angleDelta.x, event.angleDelta.y === 0);
+                        event.accepted = true;
+                    }
+                }
                 y: root.isVerticalOrientation ? 0 : -root.topMargin
                 x: root.isVerticalOrientation ? -root.leftMargin : 0
                 width: parent.width + (root.isVerticalOrientation ? root.leftMargin + root.rightMargin : 0)
                 height: parent.height + (root.isVerticalOrientation ? 0 : root.topMargin + root.bottomMargin)
                 hoverEnabled: true
-                acceptedButtons: Qt.LeftButton | Qt.RightButton
+                acceptedButtons: Qt.LeftButton | Qt.MiddleButton | Qt.RightButton
                 cursorShape: Qt.PointingHandCursor
                 enabled: root.inlineExpanded
 
@@ -637,6 +661,10 @@ BasePill {
                 }
 
                 onClicked: mouse => {
+                    if (mouse.button === Qt.MiddleButton) {
+                        trayItem.secondaryActivate();
+                        return;
+                    }
                     if (mouse.button === Qt.LeftButton) {
                         root.activateInlineTrayItem(trayItem, inlineVisualContent);
                         return;
@@ -741,12 +769,21 @@ BasePill {
 
             MouseArea {
                 id: trayItemArea
+                onWheel: event => {
+                    if (event.modifiers & Qt.ShiftModifier) {
+                        DotfilesService.adjustPriority(trayItem, event.angleDelta.y > 0 ? 1 : -1);
+                        event.accepted = true;
+                    } else {
+                        trayItem.scroll(event.angleDelta.y || event.angleDelta.x, event.angleDelta.y === 0);
+                        event.accepted = true;
+                    }
+                }
                 y: root.isVerticalOrientation ? 0 : -root.topMargin
                 x: root.isVerticalOrientation ? -root.leftMargin : 0
                 width: parent.width + (root.isVerticalOrientation ? root.leftMargin + root.rightMargin : 0)
                 height: parent.height + (root.isVerticalOrientation ? 0 : root.topMargin + root.bottomMargin)
                 hoverEnabled: true
-                acceptedButtons: Qt.LeftButton | Qt.RightButton
+                acceptedButtons: Qt.LeftButton | Qt.MiddleButton | Qt.RightButton
                 cursorShape: dragHandler.longPressing ? Qt.DragMoveCursor : Qt.PointingHandCursor
 
                 onPressed: mouse => {
@@ -773,6 +810,8 @@ BasePill {
 
                     if (!delegateRoot.trayItem)
                         return;
+                    if (DotfilesService.activate(delegateRoot.trayItem))
+                        return;
                     if (!delegateRoot.trayItem.onlyMenu) {
                         delegateRoot.trayItem.activate();
                         return;
@@ -798,6 +837,10 @@ BasePill {
                 }
 
                 onClicked: mouse => {
+                    if (mouse.button === Qt.MiddleButton) {
+                        trayItem.secondaryActivate();
+                        return;
+                    }
                     if (dragHandler.dragging)
                         return;
                     if (mouse.button !== Qt.RightButton)
