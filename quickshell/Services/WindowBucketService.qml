@@ -9,7 +9,7 @@ import "../Common/WindowBuckets.js" as WindowBuckets
 Singleton {
     id: root
 
-    readonly property var placements: WindowBuckets.placements(SessionData.windowBucketPlacements, SettingsData.windowBucketPlacements)
+    readonly property string placement: WindowBuckets.placement(SessionData.windowBucketPlacement, SettingsData.windowBucketPlacement)
 
     function _barShowsBuckets(entry) {
         if (typeof entry === "string")
@@ -23,13 +23,10 @@ Singleton {
             return [];
         const inBar = SettingsData.barConfigs.some(bar => bar.enabled !== false && ShellLayout.coversScreen(bar, screen) && ["leftWidgets", "centerWidgets", "rightWidgets"].some(key => (bar[key] ?? []).some(_barShowsBuckets)));
         const inDock = SettingsData.dockConfigsForScreen(screen).some(dock => dock.enabled && dock.widgets.some(widget => widget.widgetId === "windowBuckets" && widget.enabled !== false));
-        return WindowBuckets.hosted(surface, root.placements, inBar, inDock);
+        return WindowBuckets.host(root.placement, inBar, inDock) === surface ? WindowBuckets.BUCKETS : [];
     }
 
-    function move(bucket) {
-        if (!WindowBuckets.BUCKETS.includes(bucket))
-            return false;
-        SessionData.set("windowBucketPlacements", WindowBuckets.moved(SessionData.windowBucketPlacements, SettingsData.windowBucketPlacements, bucket));
-        return true;
+    function move() {
+        SessionData.set("windowBucketPlacement", WindowBuckets.flipped(root.placement));
     }
 }

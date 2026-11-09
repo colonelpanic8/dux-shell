@@ -4,26 +4,17 @@ var BUCKETS = ["minimized", "scratchpad"];
 var SURFACES = ["bar", "dock"];
 
 // A stored session choice wins over the configured default; anything else stays in the bar.
-function placements(stored, defaults) {
-    const result = {};
-    for (const bucket of BUCKETS) {
-        const choice = stored ? stored[bucket] : undefined;
-        const fallback = defaults ? defaults[bucket] : undefined;
-        result[bucket] = SURFACES.includes(choice) ? choice : SURFACES.includes(fallback) ? fallback : "bar";
-    }
-    return result;
+function placement(stored, fallback) {
+    return SURFACES.includes(stored) ? stored : SURFACES.includes(fallback) ? fallback : "bar";
 }
 
-// Buckets shown on `surface`: each where it was placed, or on the only surface able to hold it.
-function hosted(surface, placed, inBar, inDock) {
-    return BUCKETS.filter(bucket => {
-        const home = !inDock ? (inBar ? "bar" : "") : !inBar ? "dock" : placed[bucket];
-        return home === surface;
-    });
+// Where the buckets show: where they were placed, or on the only surface able to hold them.
+function host(placed, inBar, inDock) {
+    if (!inDock)
+        return inBar ? "bar" : "none";
+    return inBar ? placed : "dock";
 }
 
-function moved(stored, defaults, bucket) {
-    const next = Object.assign({}, stored);
-    next[bucket] = placements(stored, defaults)[bucket] === "dock" ? "bar" : "dock";
-    return next;
+function flipped(placed) {
+    return placed === "dock" ? "bar" : "dock";
 }

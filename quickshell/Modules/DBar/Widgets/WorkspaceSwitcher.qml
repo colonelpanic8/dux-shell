@@ -808,7 +808,7 @@ BasePill {
                             if (delegateRoot.focusWindowAt(mouse.x, mouse.y))
                                 return;
                             if (record?.bucket)
-                                WindowBucketService.move(record.bucket);
+                                WindowBucketService.move();
                             else
                                 root.switchToWorkspaceByModelData(modelData);
                         } else if (mouse.button === Qt.RightButton) {
@@ -1054,7 +1054,7 @@ BasePill {
                                         id: wsIcon
                                         anchors.verticalCenter: parent.verticalCenter
                                         name: loadedIconData?.value ?? ""
-                                        size: root.labelSize
+                                        size: record?.bucket ? root.appIconSize : root.labelSize
                                         color: contentInk
                                         weight: (isActive && !isPlaceholder) ? 500 : 400
                                     }
@@ -1250,7 +1250,7 @@ BasePill {
                                     visible: loadedHasIcon && loadedIconData?.type === "icon"
                                     anchors.horizontalCenter: parent.horizontalCenter
                                     name: loadedIconData?.value ?? ""
-                                    size: root.labelSize
+                                    size: record?.bucket ? root.appIconSize : root.labelSize
                                     color: contentInk
                                     weight: (isActive && !isPlaceholder) ? 500 : 400
                                 }
