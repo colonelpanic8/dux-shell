@@ -254,6 +254,7 @@ Singleton {
     property var barPinnedApps: []
     property var hiddenTrayIds: []
     property var trayItemOrder: []
+    property var windowBucketPlacements: ({})
     property var recentColors: []
     property bool showThirdPartyPlugins: false
     property bool pluginBrowserInstalledFirst: false

@@ -162,6 +162,9 @@ var LOCAL_SPEC = {
     trayItemOrder: {
         def: []
     },
+    windowBucketPlacements: {
+        def: {}
+    },
     recentColors: {
         def: []
     },

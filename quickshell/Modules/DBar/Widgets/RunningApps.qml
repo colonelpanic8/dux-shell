@@ -77,15 +77,11 @@ BasePill {
     readonly property bool _groupByApp: SettingsData.widgetOption("runningApps", widgetData, "runningAppsGroupByApp")
     readonly property string windowModelKey: _groupByApp ? "appId" : CompositorService.toplevelKey
 
-    property bool minimizedOnly: false
-
     readonly property var sortedToplevels: {
         _toplevelsUpdateTrigger;
         let toplevels = CompositorService.sortedToplevels;
         if (!toplevels || toplevels.length === 0)
             return [];
-        if (minimizedOnly)
-            return toplevels.filter(toplevel => CompositorService.isMinimized(toplevel));
 
         if (_currentWorkspace)
             toplevels = CompositorService.filterCurrentWorkspace(toplevels, parentScreen?.name) || [];

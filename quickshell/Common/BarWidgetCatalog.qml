@@ -44,10 +44,10 @@ Singleton {
             "section": "left"
         },
         {
-            "id": "minimizedWindows",
-            "text": I18n.tr("Minimized windows"),
-            "description": I18n.tr("Minimized windows, restored on click; hidden when there are none"),
-            "icon": "minimize",
+            "id": "windowBuckets",
+            "text": I18n.tr("Minimized and scratchpad windows"),
+            "description": I18n.tr("The workspace switcher's minimized and scratchpad buckets placed here; click a bucket to move it back"),
+            "icon": "inbox",
             "section": "left"
         },
         {

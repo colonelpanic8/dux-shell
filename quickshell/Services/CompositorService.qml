@@ -1792,11 +1792,13 @@ Singleton {
     }
 
     function workspacesForScreen(screenName, followFocus, options) {
+        if (options.bucketsOnly)
+            return isHyprland ? WorkspaceModel.hyprlandBuckets(_hyprlandWorkspaceState(), screenName, followFocus, options.buckets) : [];
         switch (compositor) {
         case "niri":
             return WorkspaceModel.niriWorkspacesForScreen(_niriWorkspaceState(), screenName, followFocus, options.occupiedOnly, _workspaceRecords);
         case "hyprland":
-            return WorkspaceModel.hyprlandWorkspacesForScreen(_hyprlandWorkspaceState(), screenName, followFocus, options.occupiedOnly, options.minCount, options.showSpecial);
+            return WorkspaceModel.hyprlandWorkspacesForScreen(_hyprlandWorkspaceState(), screenName, followFocus, options.occupiedOnly, options.minCount, options.showSpecial, options.buckets);
         case "mango":
             {
                 const name = _followedScreen(screenName, followFocus);
