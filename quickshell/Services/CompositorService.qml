@@ -263,9 +263,22 @@ Singleton {
             NiriService.closeOverview();
     }
 
+    // Hyprland has no minimize; the dotfiles config parks minimized windows on special:minimized.
+    function isMinimized(toplevel) {
+        if (!toplevel)
+            return false;
+        if (isHyprland)
+            return WorkspaceModel.hyprlandBucketOf(_hyprlandToplevelFor(toplevel)?.workspace?.name ?? "") === "minimized";
+        return canMinimize(toplevel) && toplevel.minimized === true;
+    }
+
     function activateToplevel(toplevel) {
         if (!toplevel)
             return;
+        if (isHyprland && isMinimized(toplevel)) {
+            focusWindow(_hyprlandToplevelFor(toplevel).address);
+            return;
+        }
         closeNiriOverviewOnWindowFocus();
         if (canMinimize(toplevel) && toplevel.minimized)
             toplevel.minimized = false;
