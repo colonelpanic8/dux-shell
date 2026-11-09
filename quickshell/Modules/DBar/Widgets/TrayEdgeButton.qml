@@ -42,8 +42,8 @@ Item {
 
     BarPillSurface {
         id: button
-        width: root.tray.trayItemSize
-        height: root.tray.trayItemSize
+        width: root.tray.trayIconSize
+        height: root.tray.trayIconSize
         anchors.centerIn: parent
         style: BarMetrics.widgetStyle(root.tray.barConfig)
         pressed: area.pressed
@@ -52,7 +52,7 @@ Item {
         DIcon {
             anchors.centerIn: parent
             name: root.iconName
-            size: root.tray.trayIconSize
+            size: Math.min(root.tray.trayIconSize, Theme.iconSizeSmall)
             color: Theme.onSecondaryContainer
         }
 
