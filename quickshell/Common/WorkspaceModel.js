@@ -299,19 +299,19 @@ function hyprlandSpecialWorkspaces(raw, screenName, followFocus, occupiedOnly) {
     return specials;
 }
 
-// Occupied buckets among `keys`; scratchpads toggle onto whichever monitor is focused, so their bucket is on every bar.
-function hyprlandBuckets(raw, screenName, followFocus, keys) {
+// Buckets holding windows; scratchpads toggle onto whichever monitor is focused, so their bucket is on every screen.
+function hyprlandBuckets(raw, screenName, followFocus) {
     return [
         {bucket: "minimized", name: "M", icon: "inbox", output: followFocus ? "" : screenName || ""},
         {bucket: "scratchpad", name: "S", icon: "layers", output: ""}
-    ].filter(b => keys.includes(b.bucket)).map(b => ({id: "dotfiles-" + b.bucket, idx: null, name: b.name, output: b.output, active: false, placeholder: false, special: true, bucket: b.bucket, icon: b.icon})).filter(b => raw.toplevels.some(tl => hyprlandWorkspaceMatches(tl.workspace, b)));
+    ].map(b => ({id: "dotfiles-" + b.bucket, idx: null, name: b.name, output: b.output, active: false, placeholder: false, special: true, bucket: b.bucket, icon: b.icon})).filter(b => raw.toplevels.some(tl => hyprlandWorkspaceMatches(tl.workspace, b)));
 }
 
-function hyprlandWorkspacesForScreen(raw, screenName, followFocus, occupiedOnly, minCount, showSpecial, buckets) {
+function hyprlandWorkspacesForScreen(raw, screenName, followFocus, occupiedOnly, minCount, showSpecial) {
     const regular = hyprlandPersistentWorkspaces(raw, hyprlandListedWorkspaces(raw, screenName, followFocus, occupiedOnly), screenName, followFocus, minCount);
     if (!showSpecial)
         return regular;
-    return regular.concat(hyprlandBuckets(raw, screenName, followFocus, buckets ?? ["minimized", "scratchpad"]));
+    return regular.concat(hyprlandBuckets(raw, screenName, followFocus));
 }
 
 function hyprlandScrollWorkspaces(raw, screenName, followFocus) {

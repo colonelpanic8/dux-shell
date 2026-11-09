@@ -44,9 +44,9 @@ Singleton {
             "section": "left"
         },
         {
-            "id": "windowBuckets",
-            "text": I18n.tr("Minimized and scratchpad windows"),
-            "description": I18n.tr("The workspace switcher's minimized and scratchpad buckets placed here; click a bucket to move them back"),
+            "id": "hiddenWindows",
+            "text": I18n.tr("Hidden windows"),
+            "description": I18n.tr("Minimized and scratchpad windows; add it to a bar and a dock to pop it between them"),
             "icon": "inbox",
             "section": "left"
         },

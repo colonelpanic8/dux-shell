@@ -136,7 +136,7 @@ Item {
             workspaceSwitcherComponent,
             focusedWindowComponent,
             runningAppsComponent,
-            windowBucketsComponent,
+            hiddenWindowsComponent,
             appsDockComponent,
             clockComponent,
             mediaComponent,
@@ -327,16 +327,17 @@ Item {
     }
 
     Component {
-        id: windowBucketsComponent
+        id: hiddenWindowsComponent
 
-        WorkspaceSwitcher {
-            bucketsOnly: true
-            axis: root.surfaceContext.axis
-            screenName: _barScreenName
-            widgetThickness: root.surfaceContext.widgetThickness
-            barThickness: root.surfaceContext.thickness
-            parentScreen: root.surfaceContext.screen
-            hyprlandOverviewLoader: root.surfaceContext.hyprlandOverviewLoader
+        HiddenWindows {
+            surfaceKind: root.surfaceContext.kind === "dock" ? "dock" : "bar"
+            widgetThickness: surfaceContext.widgetThickness
+            barThickness: surfaceContext.thickness
+            barSpacing: barConfig?.spacing ?? 4
+            section: root.getWidgetSection(parent)
+            parentScreen: surfaceContext.screen
+            barConfig: root.surfaceContext.config
+            isAutoHideBar: root.surfaceContext.config?.autoHide ?? false
         }
     }
 

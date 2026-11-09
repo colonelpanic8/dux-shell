@@ -252,12 +252,6 @@ var DEFAULTS = {
     }
 };
 
-DEFAULTS.windowBuckets = Object.assign({}, DEFAULTS.workspaceSwitcher, {
-    showWorkspaceApps: true,
-    groupWorkspaceApps: false,
-    maxWorkspaceIcons: 30
-});
-
 // entry key -> settings.json key that held the value before config version 19 (launcherButton: 29)
 var MIGRATED_GLOBALS = {
     launcherButton: sameNames(["launcherLogoMode", "launcherLogoCustomPath", "launcherLogoColorOverride", "launcherLogoBrightness", "launcherLogoContrast", "launcherLogoSizeOffset"]),

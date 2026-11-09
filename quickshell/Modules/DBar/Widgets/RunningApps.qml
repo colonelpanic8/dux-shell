@@ -256,9 +256,11 @@ BasePill {
             property var toplevelObject: toplevelData
             property int windowCount: isGrouped ? modelData.windows.length : 1
             readonly property bool isMinimized: {
+                if (!CompositorService.supportsMinimize)
+                    return false;
                 if (isGrouped)
-                    return groupData.windows.length > 0 && groupData.windows.every(w => CompositorService.isMinimized(w.toplevel));
-                return CompositorService.isMinimized(toplevelObject);
+                    return groupData.windows.length > 0 && groupData.windows.every(w => w.toplevel.minimized);
+                return toplevelObject?.minimized === true;
             }
             property string tooltipText: {
                 root._desktopEntriesUpdateTrigger;
