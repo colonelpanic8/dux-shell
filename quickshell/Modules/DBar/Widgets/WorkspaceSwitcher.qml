@@ -47,6 +47,7 @@ BasePill {
     property string screenName: ""
     property var hyprlandOverviewLoader: null
     property var surfaceContext: null
+    property bool bucketsOnly: false
     readonly property string indicatorStyle: root.opt("workspaceIndicatorStyle")
     readonly property bool linesStyle: indicatorStyle === "lines"
     readonly property bool cardsStyle: indicatorStyle === "cards"
@@ -82,6 +83,7 @@ BasePill {
         showPadding: root.opt("showWorkspacePadding")
         paddingCount: root.opt("workspacePaddingCount")
         showSpecial: root.opt("showSpecialWorkspaces")
+        bucketsOnly: root.bucketsOnly
         reverseScrolling: root.opt("reverseScrolling")
     }
 
@@ -93,7 +95,7 @@ BasePill {
     readonly property var workspaceList: workspaces.workspaceList
 
     function opt(key) {
-        return SettingsData.widgetOption("workspaceSwitcher", widgetData, key);
+        return SettingsData.widgetOption(bucketsOnly ? "windowBuckets" : "workspaceSwitcher", widgetData, key);
     }
 
     property int _desktopEntriesUpdateTrigger: 0
@@ -242,7 +244,7 @@ BasePill {
         return getWorkspaceIndexFallback(modelData, index);
     }
 
-    readonly property bool shouldShow: workspaces.available
+    readonly property bool shouldShow: workspaces.available && (!bucketsOnly || workspaceList.length > 0)
 
     width: shouldShow ? (isVertical ? barThickness : visualWidth) : 0
     height: shouldShow ? (isVertical ? visualHeight : barThickness) : 0
@@ -746,7 +748,10 @@ BasePill {
                         if (mouse.button === Qt.LeftButton) {
                             if (delegateRoot.focusWindowAt(mouse.x, mouse.y))
                                 return;
-                            root.switchToWorkspaceByModelData(modelData);
+                            if (record?.bucket)
+                                WindowBucketService.move();
+                            else
+                                root.switchToWorkspaceByModelData(modelData);
                         } else if (mouse.button === Qt.RightButton) {
                             CompositorService.workspaceSecondaryAction(record, root.effectiveScreenName);
                             root.toggleHyprlandOverview();
@@ -990,7 +995,7 @@ BasePill {
                                         id: wsIcon
                                         anchors.verticalCenter: parent.verticalCenter
                                         name: loadedIconData?.value ?? ""
-                                        size: root.labelSize
+                                        size: record?.bucket ? root.appIconSize : root.labelSize
                                         color: contentInk
                                         weight: (isActive && !isPlaceholder) ? 500 : 400
                                     }
@@ -1178,7 +1183,7 @@ BasePill {
                                     visible: loadedHasIcon && loadedIconData?.type === "icon"
                                     anchors.horizontalCenter: parent.horizontalCenter
                                     name: loadedIconData?.value ?? ""
-                                    size: root.labelSize
+                                    size: record?.bucket ? root.appIconSize : root.labelSize
                                     color: contentInk
                                     weight: (isActive && !isPlaceholder) ? 500 : 400
                                 }
