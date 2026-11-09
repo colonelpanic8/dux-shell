@@ -22,7 +22,7 @@ var componentNames = {
     "workspaceSwitcher": "workspaceSwitcherComponent",
     "focusedWindow": "focusedWindowComponent",
     "runningApps": "runningAppsComponent",
-    "minimizedWindows": "minimizedWindowsComponent",
+    "windowBuckets": "windowBucketsComponent",
     "clock": "clockComponent",
     "music": "mediaComponent",
     "music:activity": "mediaActivityComponent",

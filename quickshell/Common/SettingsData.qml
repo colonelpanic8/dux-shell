@@ -460,6 +460,7 @@ Singleton {
     property string systemTrayIconTintMode: Spec.SPEC.systemTrayIconTintMode.def
     property int systemTrayIconTintSaturation: Spec.SPEC.systemTrayIconTintSaturation.def
     property int systemTrayIconTintStrength: Spec.SPEC.systemTrayIconTintStrength.def
+    property var windowBucketPlacements: Spec.SPEC.windowBucketPlacements.def
 
     property int controlCenterColumns: Spec.SPEC.controlCenterColumns.def
     property int controlCenterRows: Spec.SPEC.controlCenterRows.def

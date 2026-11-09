@@ -19,6 +19,8 @@ QtObject {
     property bool showPadding: false
     property int paddingCount: 0
     property bool showSpecial: false
+    // Lists only the minimized and scratchpad buckets placed in the dock.
+    property bool bucketsOnly: false
     property bool reverseScrolling: false
 
     readonly property bool useExtWorkspace: {
@@ -57,7 +59,9 @@ QtObject {
             "occupiedOnly": occupiedOnly,
             "showAllTags": showAllTags,
             "minCount": showPadding ? paddingCount : 0,
-            "showSpecial": showSpecial
+            "showSpecial": showSpecial,
+            "bucketsOnly": bucketsOnly,
+            "buckets": WindowBucketService.hostedIn(bucketsOnly ? "dock" : "bar", screenName)
         });
         const slots = slotList(baseList);
         if (CompositorService.ephemeralWorkspaces || !showPadding || CompositorService.supportsPersistentWorkspaces)
