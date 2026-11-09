@@ -2410,8 +2410,10 @@ Singleton {
         return DockConfig.resolveAll(dockConfigs, screen, Quickshell.screens, (config, target) => isScreenInPreferences(target, config.screenPreferences)).filter(config => !_barClaimsEdge(screen, config.position));
     }
 
+    // The dock that sizes an edge: its reserving dock, else the first one there.
     function dockConfigForScreenEdge(screen, side) {
-        return dockConfigsForScreen(screen).find(config => DockConfig.EDGES[config.position] === side) ?? null;
+        const onEdge = dockConfigsForScreen(screen).filter(config => DockConfig.EDGES[config.position] === side);
+        return onEdge.find(DockConfig.reserves) ?? onEdge[0] ?? null;
     }
 
     function dockConfigForScreen(screen) {
@@ -2441,12 +2443,16 @@ Singleton {
         return Quickshell.screens.filter(screen => preferences.includes("all") || isScreenInPreferences(screen, preferences));
     }
 
-    // A dock only clashes with something sharing both a screen and an edge; other edges stay free.
+    // A dock only clashes with a dock in its slot on a shared screen edge, or with a bar there.
     function dockAssignmentConflict(id, preferences, position) {
         const edge = position ?? getDockConfig(id)?.position ?? SettingsData.Position.Bottom;
+        const candidate = Object.assign(DockConfig.create(id, ""), getDockConfig(id), {
+            "enabled": true,
+            "position": edge
+        });
         const covered = _screensCoveredBy(preferences);
         for (const other of dockConfigs) {
-            if (other.id === id || other.position !== edge || !other.enabled)
+            if (other.id === id || !other.enabled || !DockConfig.clash(candidate, other))
                 continue;
             if (covered.some(screen => isScreenInPreferences(screen, other.screenPreferences) || other.screenPreferences.includes("all")))
                 return other.name;
