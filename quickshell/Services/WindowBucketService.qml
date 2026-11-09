@@ -11,19 +11,25 @@ Singleton {
 
     readonly property string placement: WindowBuckets.placement(SessionData.windowBucketPlacement, SettingsData.windowBucketPlacement)
 
-    function _barShowsBuckets(entry) {
+    function _isWidget(entry) {
         if (typeof entry === "string")
-            return entry === "workspaceSwitcher" && SettingsData.widgetOption("workspaceSwitcher", null, "showSpecialWorkspaces");
-        return (entry?.id ?? entry?.widgetId) === "workspaceSwitcher" && entry.enabled !== false && SettingsData.widgetOption("workspaceSwitcher", entry, "showSpecialWorkspaces");
+            return entry === "hiddenWindows";
+        return (entry?.widgetId ?? entry?.id) === "hiddenWindows" && entry.enabled !== false;
     }
 
-    function hostedIn(surface, screenName) {
+    function forScreen(screenName) {
         const screen = ShellLayout.screenForName(screenName);
         if (!screen)
-            return [];
-        const inBar = SettingsData.barConfigs.some(bar => bar.enabled !== false && ShellLayout.coversScreen(bar, screen) && ["leftWidgets", "centerWidgets", "rightWidgets"].some(key => (bar[key] ?? []).some(_barShowsBuckets)));
-        const inDock = SettingsData.dockConfigsForScreen(screen).some(dock => dock.enabled && dock.widgets.some(widget => widget.widgetId === "windowBuckets" && widget.enabled !== false));
-        return WindowBuckets.host(root.placement, inBar, inDock) === surface ? WindowBuckets.BUCKETS : [];
+            return {
+                "host": "none",
+                "movable": false
+            };
+        const inBar = SettingsData.barConfigs.some(bar => bar.enabled !== false && ShellLayout.coversScreen(bar, screen) && ["leftWidgets", "centerWidgets", "rightWidgets"].some(key => (bar[key] ?? []).some(_isWidget)));
+        const inDock = SettingsData.dockConfigsForScreen(screen).some(dock => dock.enabled && dock.widgets.some(_isWidget));
+        return {
+            "host": WindowBuckets.host(root.placement, inBar, inDock),
+            "movable": inBar && inDock
+        };
     }
 
     function move() {

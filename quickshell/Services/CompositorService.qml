@@ -269,22 +269,9 @@ Singleton {
             NiriService.closeOverview();
     }
 
-    // Hyprland has no minimize; the dotfiles config parks minimized windows on special:minimized.
-    function isMinimized(toplevel) {
-        if (!toplevel)
-            return false;
-        if (isHyprland)
-            return WorkspaceModel.hyprlandBucketOf(_hyprlandToplevelFor(toplevel)?.workspace?.name ?? "") === "minimized";
-        return canMinimize(toplevel) && toplevel.minimized === true;
-    }
-
     function activateToplevel(toplevel) {
         if (!toplevel)
             return;
-        if (isHyprland && isMinimized(toplevel)) {
-            focusWindow(_hyprlandToplevelFor(toplevel).address);
-            return;
-        }
         closeNiriOverviewOnWindowFocus();
         if (isNiri && _niriShowParked(toplevel))
             return;
@@ -2039,13 +2026,11 @@ Singleton {
     }
 
     function workspacesForScreen(screenName, followFocus, options) {
-        if (options.bucketsOnly)
-            return isHyprland ? WorkspaceModel.hyprlandBuckets(_hyprlandWorkspaceState(), screenName, followFocus, options.buckets) : [];
         switch (compositor) {
         case "niri":
             return WorkspaceModel.niriWorkspacesForScreen(_niriWorkspaceState(), screenName, followFocus, options.occupiedOnly, _workspaceRecords, options.showSpecial);
         case "hyprland":
-            return WorkspaceModel.hyprlandWorkspacesForScreen(_hyprlandWorkspaceState(), screenName, followFocus, options.occupiedOnly, options.minCount, options.showSpecial, options.buckets);
+            return WorkspaceModel.hyprlandWorkspacesForScreen(_hyprlandWorkspaceState(), screenName, followFocus, options.occupiedOnly, options.minCount, options.showSpecial);
         case "mango":
             {
                 const name = _followedScreen(screenName, followFocus);
@@ -2113,6 +2098,15 @@ Singleton {
         default:
             return null;
         }
+    }
+
+    // Minimized and scratchpad buckets that hold windows, each with its windows.
+    function windowBuckets(screenName) {
+        if (!isHyprland)
+            return [];
+        return WorkspaceModel.hyprlandBuckets(_hyprlandWorkspaceState(), screenName, false).map(bucket => Object.assign({}, bucket, {
+                "windows": windowsOnWorkspace(bucket)
+            }));
     }
 
     function windowsOnWorkspace(record) {
