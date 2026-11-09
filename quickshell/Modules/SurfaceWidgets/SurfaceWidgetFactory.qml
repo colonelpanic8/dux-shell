@@ -136,6 +136,7 @@ Item {
             workspaceSwitcherComponent,
             focusedWindowComponent,
             runningAppsComponent,
+            windowBucketsComponent,
             appsDockComponent,
             clockComponent,
             mediaComponent,
@@ -317,6 +318,20 @@ Item {
         id: workspaceSwitcherComponent
 
         WorkspaceSwitcher {
+            axis: root.surfaceContext.axis
+            screenName: _barScreenName
+            widgetThickness: root.surfaceContext.widgetThickness
+            barThickness: root.surfaceContext.thickness
+            parentScreen: root.surfaceContext.screen
+            hyprlandOverviewLoader: root.surfaceContext.hyprlandOverviewLoader
+        }
+    }
+
+    Component {
+        id: windowBucketsComponent
+
+        WorkspaceSwitcher {
+            bucketsOnly: true
             axis: root.surfaceContext.axis
             screenName: _barScreenName
             widgetThickness: root.surfaceContext.widgetThickness

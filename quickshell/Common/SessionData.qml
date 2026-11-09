@@ -258,6 +258,7 @@ Singleton {
     property var trayCollapseEnabled: null
     property var trayExpandOnHover: null
     property var trayPinnedItems: []
+    property var windowBucketPlacements: ({})
     property var recentColors: []
     property bool showThirdPartyPlugins: false
     property bool pluginBrowserInstalledFirst: false

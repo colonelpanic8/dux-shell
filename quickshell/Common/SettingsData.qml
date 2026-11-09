@@ -461,6 +461,7 @@ Singleton {
     property bool trayOverflowToDock: Spec.SPEC.trayOverflowToDock.def
     property bool trayCollapseDefault: Spec.SPEC.trayCollapseDefault.def
     property bool trayExpandOnHoverDefault: Spec.SPEC.trayExpandOnHoverDefault.def
+    property var windowBucketPlacements: Spec.SPEC.windowBucketPlacements.def
 
     property int controlCenterColumns: Spec.SPEC.controlCenterColumns.def
     property real controlCenterIconScale: Spec.SPEC.controlCenterIconScale.def

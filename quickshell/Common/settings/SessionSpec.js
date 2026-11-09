@@ -176,6 +176,9 @@ var LOCAL_SPEC = {
     trayPinnedItems: {
         def: []
     },
+    windowBucketPlacements: {
+        def: {}
+    },
     recentColors: {
         def: []
     },

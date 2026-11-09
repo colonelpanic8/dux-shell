@@ -44,6 +44,13 @@ Singleton {
             "section": "left"
         },
         {
+            "id": "windowBuckets",
+            "text": I18n.tr("Minimized and scratchpad windows"),
+            "description": I18n.tr("The workspace switcher's minimized and scratchpad buckets placed here; click a bucket to move it back"),
+            "icon": "inbox",
+            "section": "left"
+        },
+        {
             "id": "appsDock",
             "text": I18n.tr("Apps dock"),
             "description": I18n.tr("Pinned and running apps with drag-and-drop"),

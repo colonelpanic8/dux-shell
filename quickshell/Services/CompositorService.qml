@@ -263,9 +263,22 @@ Singleton {
             NiriService.closeOverview();
     }
 
+    // Hyprland has no minimize; the dotfiles config parks minimized windows on special:minimized.
+    function isMinimized(toplevel) {
+        if (!toplevel)
+            return false;
+        if (isHyprland)
+            return WorkspaceModel.hyprlandBucketOf(_hyprlandToplevelFor(toplevel)?.workspace?.name ?? "") === "minimized";
+        return canMinimize(toplevel) && toplevel.minimized === true;
+    }
+
     function activateToplevel(toplevel) {
         if (!toplevel)
             return;
+        if (isHyprland && isMinimized(toplevel)) {
+            focusWindow(_hyprlandToplevelFor(toplevel).address);
+            return;
+        }
         closeNiriOverviewOnWindowFocus();
         if (canMinimize(toplevel) && toplevel.minimized)
             toplevel.minimized = false;
@@ -1781,11 +1794,13 @@ Singleton {
     }
 
     function workspacesForScreen(screenName, followFocus, options) {
+        if (options.bucketsOnly)
+            return isHyprland ? WorkspaceModel.hyprlandBuckets(_hyprlandWorkspaceState(), screenName, followFocus, options.buckets) : [];
         switch (compositor) {
         case "niri":
             return WorkspaceModel.niriWorkspacesForScreen(_niriWorkspaceState(), screenName, followFocus, options.occupiedOnly, _workspaceRecords);
         case "hyprland":
-            return WorkspaceModel.hyprlandWorkspacesForScreen(_hyprlandWorkspaceState(), screenName, followFocus, options.occupiedOnly, options.minCount, options.showSpecial);
+            return WorkspaceModel.hyprlandWorkspacesForScreen(_hyprlandWorkspaceState(), screenName, followFocus, options.occupiedOnly, options.minCount, options.showSpecial, options.buckets);
         case "mango":
             {
                 const name = _followedScreen(screenName, followFocus);

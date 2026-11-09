@@ -638,6 +638,12 @@ var LOCAL_SPEC = {
     trayOverflowToDock: {
         def: false
     },
+    windowBucketPlacements: {
+        def: {
+            minimized: "bar",
+            scratchpad: "bar"
+        }
+    },
     controlCenterColumns: {
         def: 8
     },
