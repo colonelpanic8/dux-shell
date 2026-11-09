@@ -208,6 +208,7 @@ test("hyprland hidden scratchpads collect in their own bucket on every monitor",
     assert.deepEqual(pick(shown, "name"), ["1", "3", "M", "S"]);
     assert.deepEqual(pick(model.hyprlandWindowsOnWorkspace(raw.windows, shown[3], raw.toplevels), "address"), ["0xe"]);
     assert.deepEqual(pick(model.hyprlandWorkspacesForScreen(raw, "HDMI-A-1", false, false, 0, true), "name"), ["2", "4", "chat", "S"]);
+    assert.deepEqual(pick(model.hyprlandBuckets(raw, "HDMI-A-1", false), "name"), ["S"]);
     assert.equal(model.hyprlandBucketOf("special:NSP"), "scratchpad");
     assert.equal(model.hyprlandBucketOf("special:scratch"), "");
 });

@@ -44,6 +44,13 @@ Singleton {
             "section": "left"
         },
         {
+            "id": "hiddenWindows",
+            "text": I18n.tr("Hidden windows"),
+            "description": I18n.tr("Minimized and scratchpad windows; add it to a bar and a dock to pop it between them"),
+            "icon": "inbox",
+            "section": "left"
+        },
+        {
             "id": "appsDock",
             "text": I18n.tr("Apps dock"),
             "description": I18n.tr("Pinned and running apps with drag-and-drop"),
