@@ -15,7 +15,9 @@ Column {
             "id": "network",
             "label": I18n.tr("Network"),
             "icon": "lan",
-            "setting": "showNetworkIcon"
+            "setting": "showNetworkIcon",
+            "subLabel": I18n.tr("Wi-Fi network name"),
+            "subSetting": "showNetworkName"
         },
         {
             "id": "vpn",
@@ -107,6 +109,9 @@ Column {
         updates[key] = value;
         if (!value) {
             switch (key) {
+            case "showNetworkIcon":
+                updates.showNetworkName = false;
+                break;
             case "showAudioIcon":
                 updates.showAudioPercent = false;
                 break;
