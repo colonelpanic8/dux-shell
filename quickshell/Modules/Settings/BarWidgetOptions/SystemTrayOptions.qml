@@ -4,6 +4,7 @@ import Quickshell.Widgets
 import qs.Common
 import qs.DCommon.Widgets
 import qs.Modules.Settings.Widgets
+import qs.Services
 import qs.Widgets
 
 Column {
@@ -58,6 +59,25 @@ Column {
                 });
         }
         return rows;
+    }
+    // One row per policy key; several items can share a key.
+    readonly property var priorityItems: {
+        DotfilesService.state;
+        const seen = new Set();
+        const rows = [];
+        for (const item of SystemTray.items.values) {
+            const key = DotfilesService.trayInfo(item).key;
+            if (seen.has(key))
+                continue;
+            seen.add(key);
+            rows.push({
+                "item": item,
+                "key": key,
+                "title": item.tooltipTitle || item.title || item.id || key,
+                "icon": TrayMenuManager.iconSourceFor(item)
+            });
+        }
+        return rows.sort((a, b) => a.title.localeCompare(b.title));
     }
 
     width: parent?.width ?? 0
@@ -215,6 +235,60 @@ Column {
                                 onValueChanged: value => TrayMenuManager.setItemClickAction(overrideRow.modelData.id, buttonOverride.modelData.name, value)
                             }
                         }
+                    }
+                }
+            }
+        }
+    }
+
+    SettingsCard {
+        settingKey: "trayPriority"
+        tags: ["tray", "priority", "order", "sort", "system tray"]
+        iconName: "low_priority"
+        title: I18n.tr("Priority")
+
+        Repeater {
+            model: root.priorityItems
+
+            delegate: SettingsRow {
+                id: priorityRow
+                required property var modelData
+                readonly property int priority: {
+                    DotfilesService.state;
+                    return DotfilesService.priority(modelData.item);
+                }
+
+                title: modelData.title
+                subtitle: modelData.key
+                leading: IconImage {
+                    source: priorityRow.modelData.icon
+                    implicitSize: Theme.iconSize
+                }
+
+                Row {
+                    spacing: Theme.spacingXS
+
+                    DActionButton {
+                        iconName: "remove"
+                        Accessible.name: priorityRow.modelData.title + " −"
+                        enabled: priorityRow.priority > -10
+                        onClicked: DotfilesService.adjustPriority(priorityRow.modelData.item, -1)
+                    }
+
+                    StyledText {
+                        anchors.verticalCenter: parent.verticalCenter
+                        width: Theme.iconSize * 1.5
+                        horizontalAlignment: Text.AlignHCenter
+                        text: String(priorityRow.priority)
+                        font.pixelSize: Theme.fontSizeMedium
+                        color: Theme.surfaceText
+                    }
+
+                    DActionButton {
+                        iconName: "add"
+                        Accessible.name: priorityRow.modelData.title + " +"
+                        enabled: priorityRow.priority < 10
+                        onClicked: DotfilesService.adjustPriority(priorityRow.modelData.item, 1)
                     }
                 }
             }
