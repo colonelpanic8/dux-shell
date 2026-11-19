@@ -7,6 +7,7 @@ import qs.Common
 import "../Services/IconThemeIndex.js" as IconIndex
 import "TrayOrder.js" as TrayOrder
 import "TrayClickActions.js" as TrayClickActions
+import "TrayItemKey.js" as TrayItemKey
 
 Singleton {
     id: root
@@ -44,22 +45,7 @@ Singleton {
     }
 
     function getTrayItemKey(item, allItems) {
-        const id = item?.id || "";
-        if (!id)
-            return "";
-        if (_trayKeyByItem.has(item))
-            return _trayKeyByItem.get(item);
-        const pool = allItems || SystemTray.items.values;
-        const taken = new Set();
-        for (const live of pool) {
-            if (live !== item && (live?.id || "") === id && _trayKeyByItem.has(live))
-                taken.add(_trayKeyByItem.get(live));
-        }
-        let key = id;
-        for (let n = 1; taken.has(key); n++)
-            key = `${id}::${n}`;
-        _trayKeyByItem.set(item, key);
-        return key;
+        return TrayItemKey.assign(item, allItems || SystemTray.items.values, _trayKeyByItem);
     }
 
     function clickAction(item, button) {
