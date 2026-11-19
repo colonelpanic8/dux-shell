@@ -117,12 +117,12 @@ Item {
 
     readonly property real effectiveBarThickness: {
         if (root.joinsNormalBar)
-            return Theme.barThickness(storedBarConfig?.innerPadding ?? SettingsData.barInnerPaddingDefault, dpr) + joinedBarSpacing;
+            return Theme.barThickness(SettingsData.barInnerPadding(storedBarConfig, screen), dpr) + joinedBarSpacing;
         if (root.joinsBar)
-            return SettingsData.islandStripThickness(storedBarConfig);
+            return SettingsData.islandStripThickness(storedBarConfig, screen);
         if (root.usesConnectedSurfaceChrome)
             return Math.max(0, storedBarThickness);
-        return Theme.barThickness(storedBarConfig?.innerPadding ?? SettingsData.barInnerPaddingDefault, dpr) + storedBarSpacing;
+        return Theme.barThickness(SettingsData.barInnerPadding(storedBarConfig, screen), dpr) + storedBarSpacing;
     }
 
     readonly property var barBounds: {
