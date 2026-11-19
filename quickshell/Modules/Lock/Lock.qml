@@ -49,6 +49,7 @@ Scope {
     }
 
     function applyMonitorsOff() {
+        IdleService.dpmsReason = "lock screen power-off";
         IdleService.monitorsOff = true;
         CompositorService.powerOffMonitors();
         dpmsReapplyTimer.start();
@@ -386,6 +387,7 @@ Scope {
                 return;
             resetPowerOffFade();
             if (IdleService.monitorsOff) {
+                IdleService.dpmsReason = "unlocked";
                 IdleService.monitorsOff = false;
                 CompositorService.powerOnMonitors();
             }
