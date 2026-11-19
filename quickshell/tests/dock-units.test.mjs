@@ -91,10 +91,22 @@ test("drop target follows the leading edge so a wide unit can pass a narrow one 
 test("a dock shown only in the overview resolves onto an edge no enabled dock holds", () => {
     const screen = { name: "eDP-1" };
     const overviewOnly = { ...config.create("dock", "Dock"), enabled: false, openOnOverview: true };
-    assert.equal(config.resolveEdge([overviewOnly], screen, [screen], "bottom"), overviewOnly);
-    assert.equal(config.resolveEdge([{ ...config.create("dock", "Dock"), enabled: false }], screen, [screen], "bottom"), null);
+    assert.deepEqual(plain(config.resolveEdge([overviewOnly], screen, [screen], "bottom")), plain([overviewOnly]));
+    assert.equal(config.resolveEdge([{ ...config.create("dock", "Dock"), enabled: false }], screen, [screen], "bottom").length, 0);
     const enabled = { ...config.create("second", "Second"), enabled: true };
-    assert.equal(config.resolveEdge([overviewOnly, enabled], screen, [screen], "bottom"), enabled);
+    assert.deepEqual(plain(config.resolveEdge([overviewOnly, enabled], screen, [screen], "bottom")), plain([enabled]));
+});
+
+test("docks share an edge in distinct alignment slots, with at most one reserving space", () => {
+    const screen = { name: "eDP-1" };
+    const dock = (id, options) => ({ ...config.create(id, id), enabled: true, ...options });
+    const ids = docks => plain(config.resolveEdge(docks, screen, [screen], "bottom").map(item => item.id));
+    const left = dock("left", { align: "start", autoHide: true });
+    const right = dock("right", { align: "end", autoHide: true });
+    assert.deepEqual(ids([left, right]), ["left", "right"]);
+    assert.deepEqual(ids([left, dock("left2", { align: "start", autoHide: true }), right]), ["left", "right"]);
+    assert.deepEqual(ids([dock("bar", { mode: "taskbar" }), left, right]), ["bar"]);
+    assert.deepEqual(ids([left, dock("fixed", { align: "center", smartAutoHide: false }), dock("fixed2", { align: "end", smartAutoHide: false })]), ["left", "fixed"]);
 });
 
 test("default dock places launcher before pins and respects explicit auto-hide", () => {
