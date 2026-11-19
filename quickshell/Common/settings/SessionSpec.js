@@ -199,6 +199,10 @@ var LOCAL_SPEC = {
     trayPinnedItems: {
         def: []
     },
+    // "" until the buckets are first moved, so the configured default applies.
+    windowBucketPlacement: {
+        def: ""
+    },
     recentColors: {
         def: []
     },
