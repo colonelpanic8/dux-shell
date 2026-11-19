@@ -81,7 +81,7 @@ Column {
         SettingsDropdownRow {
             resetStore: root.page
             resetKeys: ["diskUsageMode"]
-            readonly property var labels: [I18n.tr("Percentage"), I18n.tr("Total", "disk usage format option, total disk size"), I18n.tr("Remaining", "disk usage format option, free disk space"), I18n.tr("Remaining / Total")]
+            readonly property var labels: [I18n.tr("Percentage"), I18n.tr("Total", "disk usage format option, total disk size"), I18n.tr("Remaining", "disk usage format option, free disk space"), I18n.tr("Remaining / Total"), I18n.tr("Percentage and remaining", "disk usage format option")]
 
             text: I18n.tr("Disk usage format")
             visible: root.type === "diskUsage"
