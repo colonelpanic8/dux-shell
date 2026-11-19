@@ -220,6 +220,7 @@ var DEFAULTS = {
     },
     controlCenterButton: {
         showNetworkIcon: true,
+        showNetworkName: false,
         showVpnIcon: true,
         showBluetoothIcon: true,
         showAudioIcon: true,
