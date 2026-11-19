@@ -169,10 +169,11 @@ Item {
                 elide: Text.ElideMiddle
                 wrapMode: Text.NoWrap
                 maximumLineCount: 1
-                width: parent.width - Theme.spacingS * 2 - (Theme.iconSizeSmall + Theme.spacingS)
+                width: parent.width - Theme.spacingS * 2 - (Theme.iconSizeSmall + Theme.spacingS) - (pinButton.visible ? pinButton.width + Theme.spacingXS : 0)
             }
 
             DIcon {
+                id: visibilityIcon
                 anchors.right: parent.right
                 anchors.rightMargin: Theme.spacingS
                 anchors.verticalCenter: parent.verticalCenter
@@ -207,6 +208,24 @@ Item {
                     }
                     root.closeRequested();
                 }
+            }
+
+            DActionButton {
+                id: pinButton
+                readonly property string itemKey: TrayMenuManager.getTrayItemKey(root.trayItem)
+                readonly property bool pinned: TrayPlacementService.pinnedKeys.includes(itemKey)
+                visible: itemKey !== ""
+                anchors.right: visibilityIcon.left
+                anchors.rightMargin: Theme.spacingXS
+                anchors.verticalCenter: parent.verticalCenter
+                buttonSize: Theme.buttonHeightXS
+                iconName: "push_pin"
+                iconSize: Theme.iconSizeSmall
+                iconFilled: pinned
+                iconColor: pinned ? Theme.primary : Theme.widgetTextColor
+                tooltipSide: "left"
+                tooltipText: I18n.tr("Keep visible when collapsed", "tray item menu: pin button that keeps this icon on a collapsed tray")
+                onClicked: TrayPlacementService.togglePin(itemKey)
             }
         }
 
