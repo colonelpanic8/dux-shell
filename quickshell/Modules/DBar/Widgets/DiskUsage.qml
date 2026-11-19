@@ -29,6 +29,8 @@ MonitorPill {
             return selectedMount.avail || "--";
         case 3:
             return (selectedMount.avail || "--") + " / " + (selectedMount.size || "--");
+        case 4:
+            return diskUsagePercent.toFixed(0) + suffix + " · " + (selectedMount.avail || "--") + " " + I18n.tr("free", "disk usage, free disk space after a size");
         default:
             return diskUsagePercent.toFixed(0) + suffix;
         }
@@ -47,6 +49,8 @@ MonitorPill {
         switch (diskUsageMode) {
         case 3:
             return "888.8G / 888.8G";
+        case 4:
+            return "100% · 888.8G " + I18n.tr("free", "disk usage, free disk space after a size");
         case 1:
         case 2:
             return "888.8G";
