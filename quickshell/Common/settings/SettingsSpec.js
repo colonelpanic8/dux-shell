@@ -636,6 +636,21 @@ var LOCAL_SPEC = {
     systemTrayItemClickActions: {
         def: {}
     },
+    systemTrayQuickMenu: {
+        def: true
+    },
+    trayCollapseDefault: {
+        def: true
+    },
+    trayExpandOnHoverDefault: {
+        def: true
+    },
+    systemTrayDefaultPlacement: {
+        def: "bar"
+    },
+    trayOverflowToDock: {
+        def: false
+    },
     controlCenterColumns: {
         def: 8
     },

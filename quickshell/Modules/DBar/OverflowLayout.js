@@ -37,7 +37,8 @@ function expanderIcon(edge, open) {
 function section(entries, hidden, spacing, triggerSize, triggerIndex) {
     const sizes = [];
     const indices = [];
-    const hasOverflow = hidden.some(index => entries[index]?.size > 0);
+    // A hidden entry shown elsewhere (a tray routed to a dock) needs no trigger.
+    const hasOverflow = hidden.some(index => entries[index]?.size > 0 && !entries[index].elsewhere);
     const insertion = Math.max(0, Math.min(entries.length, triggerIndex));
     for (let index = 0; index <= entries.length; index++) {
         if (index === insertion && hasOverflow) {
