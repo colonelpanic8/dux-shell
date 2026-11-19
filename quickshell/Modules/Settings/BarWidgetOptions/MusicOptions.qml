@@ -61,6 +61,14 @@ Column {
 
         SettingsToggleRow {
             visible: root.controls && root.page.value("mediaShowLyrics")
+            text: I18n.tr("Keep title and artist", "media widget option showing lyrics beside the title and artist instead of replacing them")
+            description: I18n.tr("Lyrics appear beside them only while the bar has room", "media widget lyrics beside track toggle description")
+            checked: root.page.value("mediaLyricsBesideTrack")
+            onToggled: checked => root.page.set("mediaLyricsBesideTrack", checked)
+        }
+
+        SettingsToggleRow {
+            visible: root.controls && root.page.value("mediaShowLyrics")
             text: I18n.tr("Smooth lyrics highlight", "Media player option that fills each sung word gradually instead of highlighting it at once")
             checked: root.page.value("mediaSmoothLyrics")
             onToggled: checked => root.page.set("mediaSmoothLyrics", checked)
