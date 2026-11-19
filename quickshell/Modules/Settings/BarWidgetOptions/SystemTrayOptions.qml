@@ -1,3 +1,4 @@
+pragma ComponentBehavior: Bound
 import QtQuick
 import Quickshell.Services.SystemTray
 import Quickshell.Widgets
@@ -78,6 +79,21 @@ Column {
             });
         }
         return rows.sort((a, b) => a.title.localeCompare(b.title));
+    }
+    readonly property var pinnedKeys: root.page.value("trayPinnedItems") ?? []
+    // Live items in tray order, then pinned keys whose app is not running so they can still be unpinned.
+    // Items without an id have no key, so they cannot be pinned.
+    readonly property var pinRows: {
+        const live = TrayMenuManager.filterEnvHidden(SystemTray.items.values);
+        const rows = TrayMenuManager.sortByPreferredOrder(live, SessionData.trayItemOrder).map(item => ({
+                    key: TrayMenuManager.getTrayItemKey(item, live),
+                    title: item.tooltipTitle || item.title || item.id
+                }));
+        const keys = rows.map(row => row.key);
+        return rows.concat(pinnedKeys.filter(key => !keys.includes(key)).map(key => ({
+                    key,
+                    title: key
+                }))).filter(row => row.key !== "");
     }
 
     width: parent?.width ?? 0
@@ -291,6 +307,40 @@ Column {
                         onClicked: DotfilesService.adjustPriority(priorityRow.modelData.item, 1)
                     }
                 }
+            }
+        }
+    }
+
+    SettingsCard {
+        settingKey: "barWidgetTrayPinned"
+        tags: ["tray", "pin", "pinned", "collapsed", "peek", "dock"]
+        title: I18n.tr("Show when collapsed", "dock widget toggle: keep this widget on a collapsed peek dock")
+        iconName: "push_pin"
+        visible: root.page.dockHosted && root.pinRows.length > 0
+
+        SettingsSliderRow {
+            resetStore: root.page
+            resetKeys: ["trayCollapsedItemCount"]
+            text: I18n.tr("Leading icons", "system tray: how many icons from the start of the tray stay on a collapsed peek dock")
+            description: I18n.tr("Shown alongside the pinned icons below", "system tray: leading icons slider description on a collapsed peek dock")
+            unit: ""
+            value: root.page.value("trayCollapsedItemCount")
+            minimum: 0
+            maximum: 10
+            onSliderValueChanged: newValue => root.page.set("trayCollapsedItemCount", newValue)
+        }
+
+        Repeater {
+            model: root.pinRows
+
+            delegate: SettingsToggleRow {
+                id: pinRow
+                required property var modelData
+
+                text: pinRow.modelData.title
+                description: pinRow.modelData.title === pinRow.modelData.key ? "" : pinRow.modelData.key
+                checked: root.pinnedKeys.includes(pinRow.modelData.key)
+                onToggled: checked => root.page.set("trayPinnedItems", checked ? root.pinnedKeys.concat([pinRow.modelData.key]) : root.pinnedKeys.filter(key => key !== pinRow.modelData.key))
             }
         }
     }
