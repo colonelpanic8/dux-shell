@@ -5,6 +5,7 @@ import Quickshell.Services.SystemTray
 import QtQuick
 import qs.Common
 import "../Services/IconThemeIndex.js" as IconIndex
+import "TrayOrder.js" as TrayOrder
 
 Singleton {
     id: root
@@ -66,22 +67,10 @@ Singleton {
         return -1;
     }
 
-    function sortByPreferredOrder(items, savedOrder) {
+    function sortByPreferredOrder(items, savedOrder, priorityOf) {
         if (!items)
             return [];
-        const order = savedOrder || [];
-        const orderMap = new Map();
-        order.forEach((key, idx) => orderMap.set(key, idx));
-
-        return [...items].sort((a, b) => {
-            const keyA = getTrayItemKey(a, items);
-            const keyB = getTrayItemKey(b, items);
-            const orderA = resolveOrderIndex(keyA, orderMap);
-            const orderB = resolveOrderIndex(keyB, orderMap);
-            const posA = orderA >= 0 ? orderA : 10000 + items.indexOf(a);
-            const posB = orderB >= 0 ? orderB : 10000 + items.indexOf(b);
-            return posA - posB;
-        });
+        return TrayOrder.sorted(items, priorityOf, savedOrder || [], item => getTrayItemKey(item, items));
     }
 
     function dragShiftOffset(index, draggedIndex, dropTargetIndex, shiftAmount) {
