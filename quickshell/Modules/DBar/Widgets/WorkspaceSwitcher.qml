@@ -150,6 +150,7 @@ BasePill {
                     "isQuickshell": isQuickshell,
                     "isSteamApp": isSteamApp,
                     "active": !!(w.activated || w.is_focused),
+                    "urgent": CompositorService.windowUrgent(w),
                     "count": 1,
                     "windowId": w.address || w.id,
                     "fallbackText": appName || ""
@@ -158,6 +159,9 @@ BasePill {
                 byApp[key].count++;
                 if (w.activated || w.is_focused) {
                     byApp[key].active = true;
+                }
+                if (CompositorService.windowUrgent(w)) {
+                    byApp[key].urgent = true;
                 }
             }
         });
@@ -437,7 +441,8 @@ BasePill {
                 property bool isHovered: pillHover.hovered
 
                 property bool loadedIsUrgent: false
-                property bool isUrgent: root.useNativeWorkspaces ? CompositorService.workspaceUrgent(record, loadedIsUrgent) : (modelData?.urgent ?? false)
+                readonly property bool urgentShownOnApp: loadedIcons.slice(0, root.opt("maxWorkspaceIcons")).some(icon => icon.urgent)
+                property bool isUrgent: !urgentShownOnApp && (root.useNativeWorkspaces ? CompositorService.workspaceUrgent(record, loadedIsUrgent) : (modelData?.urgent ?? false))
                 readonly property var loadedIconData: {
                     if (isPlaceholder)
                         return null;
@@ -1113,7 +1118,7 @@ BasePill {
                                         readonly property bool appHighlightActive: root.opt("workspaceActiveAppHighlightEnabled") && modelData.active
                                         readonly property color appBorderColor: appHighlightActive ? focusedBorderColor : Theme.primarySelected
                                         readonly property color appGlyphColor: appHighlightActive ? focusedBorderColor : Theme.primary
-                                        readonly property real appOpacity: modelData.active || root.opt("workspaceUnfocusedAppsFullOpacity") ? 1.0 : rowAppHover.hovered ? root.hoveredAppAlpha : root.unfocusedAppAlpha
+                                        readonly property real appOpacity: modelData.active || modelData.urgent || root.opt("workspaceUnfocusedAppsFullOpacity") ? 1.0 : rowAppHover.hovered ? root.hoveredAppAlpha : root.unfocusedAppAlpha
 
                                         IconImage {
                                             id: rowAppIcon
@@ -1196,6 +1201,16 @@ BasePill {
                                             radius: Math.min(Theme.cornerRadiusS, width / 2, height / 2)
                                             border.width: Theme.outlineWidth
                                             border.color: focusedBorderColor
+                                            z: 1
+                                        }
+
+                                        Rectangle {
+                                            anchors.fill: parent
+                                            visible: modelData.urgent === true
+                                            color: "transparent"
+                                            radius: Math.min(Theme.cornerRadiusS, width / 2, height / 2)
+                                            border.width: Theme.outlineWidthFocused
+                                            border.color: urgentColor
                                             z: 1
                                         }
 
@@ -1292,7 +1307,7 @@ BasePill {
                                         readonly property bool appHighlightActive: root.opt("workspaceActiveAppHighlightEnabled") && modelData.active
                                         readonly property color appBorderColor: appHighlightActive ? focusedBorderColor : Theme.primarySelected
                                         readonly property color appGlyphColor: appHighlightActive ? focusedBorderColor : Theme.primary
-                                        readonly property real appOpacity: modelData.active || root.opt("workspaceUnfocusedAppsFullOpacity") ? 1.0 : colAppHover.hovered ? root.hoveredAppAlpha : root.unfocusedAppAlpha
+                                        readonly property real appOpacity: modelData.active || modelData.urgent || root.opt("workspaceUnfocusedAppsFullOpacity") ? 1.0 : colAppHover.hovered ? root.hoveredAppAlpha : root.unfocusedAppAlpha
 
                                         IconImage {
                                             id: colAppIcon
@@ -1375,6 +1390,16 @@ BasePill {
                                             radius: Math.min(Theme.cornerRadiusS, width / 2, height / 2)
                                             border.width: Theme.outlineWidth
                                             border.color: focusedBorderColor
+                                            z: 1
+                                        }
+
+                                        Rectangle {
+                                            anchors.fill: parent
+                                            visible: modelData.urgent === true
+                                            color: "transparent"
+                                            radius: Math.min(Theme.cornerRadiusS, width / 2, height / 2)
+                                            border.width: Theme.outlineWidthFocused
+                                            border.color: urgentColor
                                             z: 1
                                         }
 
