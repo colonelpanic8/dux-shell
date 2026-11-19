@@ -2102,6 +2102,15 @@ Singleton {
         }
     }
 
+    // Minimized and scratchpad buckets that hold windows, each with its windows.
+    function windowBuckets(screenName) {
+        if (!isHyprland)
+            return [];
+        return WorkspaceModel.hyprlandBuckets(_hyprlandWorkspaceState(), screenName, false).map(bucket => Object.assign({}, bucket, {
+                "windows": windowsOnWorkspace(bucket)
+            }));
+    }
+
     function windowsOnWorkspace(record) {
         if (!record || record.placeholder)
             return [];

@@ -139,6 +139,7 @@ Item {
             workspaceSwitcherComponent,
             focusedWindowComponent,
             runningAppsComponent,
+            hiddenWindowsComponent,
             appsDockComponent,
             clockComponent,
             mediaComponent,
@@ -330,6 +331,21 @@ Item {
             barThickness: root.surfaceContext.thickness
             parentScreen: root.surfaceContext.screen
             hyprlandOverviewLoader: root.surfaceContext.hyprlandOverviewLoader
+        }
+    }
+
+    Component {
+        id: hiddenWindowsComponent
+
+        HiddenWindows {
+            surfaceKind: root.surfaceContext.kind === "dock" ? "dock" : "bar"
+            widgetThickness: surfaceContext.widgetThickness
+            barThickness: surfaceContext.thickness
+            barSpacing: barConfig?.spacing ?? 4
+            section: root.getWidgetSection(parent)
+            parentScreen: surfaceContext.screen
+            barConfig: root.surfaceContext.config
+            isAutoHideBar: root.surfaceContext.config?.autoHide ?? false
         }
     }
 

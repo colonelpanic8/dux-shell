@@ -22,6 +22,7 @@ var componentNames = {
     "workspaceSwitcher": "workspaceSwitcherComponent",
     "focusedWindow": "focusedWindowComponent",
     "runningApps": "runningAppsComponent",
+    "hiddenWindows": "hiddenWindowsComponent",
     "clock": "clockComponent",
     "music": "mediaComponent",
     "music:activity": "mediaActivityComponent",
