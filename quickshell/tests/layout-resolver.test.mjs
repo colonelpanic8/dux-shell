@@ -32,6 +32,18 @@ test("island metrics clamp each setting and a default reservation follows the pi
     assert.deepEqual(plain(resolver.islandMetrics({ islandCompactThickness: 32, islandNotch: true }, islandDefaults)), { reserve: 32, compact: 32, gap: 0, thickness: 40 });
 });
 
+test("bar size resolves millimeters by density and percent along the crossed screen edge", () => {
+    const screen = { width: 3440, height: 1440, physicalPixelDensity: 4.32 };
+    assert.equal(resolver.barTargetThickness({ barSizeMode: "millimeters", barSizeMillimeters: 10 }, screen), 43.2);
+    assert.equal(resolver.barTargetThickness({ barSizeMode: "percent", barSizePercent: 3, position: 0 }, screen), 43.2);
+    assert.equal(resolver.barTargetThickness({ barSizeMode: "percent", barSizePercent: 1, position: 2 }, screen), 34.4);
+    for (const [config, target] of [[{ barSizeMode: "pixels" }, screen], [{ barSizeMode: "millimeters" }, { ...screen, physicalPixelDensity: 0 }], [{ barSizeMode: "percent" }, null]])
+        assert.equal(resolver.barTargetThickness(config, target), 0);
+    assert.equal(resolver.islandMetrics({ barSizeMode: "millimeters", barSizeMillimeters: 10 }, islandDefaults, screen).compact, 43);
+    assert.equal(resolver.islandMetrics({ barSizeMode: "millimeters", barSizeMillimeters: 30 }, islandDefaults, screen).compact, 72);
+    assert.equal(resolver.islandMetrics({ barSizeMode: "millimeters", islandCompactThickness: 50 }, islandDefaults, null).compact, 50);
+});
+
 test("an island set to reserve less than its pill paints the full pill but reserves only what was set", () => {
     const island = bar("island", 0, { island: true, islandReserveThickness: 30 });
     const alone = resolve([island]);
