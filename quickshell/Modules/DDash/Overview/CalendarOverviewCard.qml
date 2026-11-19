@@ -61,14 +61,45 @@ Card {
         return Math.floor(diffDays / 7) + 1;
     }
 
-    function eventColorsFor(date) {
-        if (!CalendarService.calendarAvailable || !CalendarService.hasEventsForDate(date))
+    function isTask(event) {
+        return /^(task|vtodo)_/.test(event.id ?? "");
+    }
+
+    // Open tasks dated before today; like an agenda, today lists them too.
+    function overdueTasks() {
+        const today = Qt.formatDate(systemClock.date, "yyyy-MM-dd");
+        const byDate = CalendarService.eventsByDate;
+        const overdue = [];
+        for (const key in byDate) {
+            if (key < today)
+                overdue.push(...byDate[key].filter(event => isTask(event) && !event.completed));
+        }
+        return overdue;
+    }
+
+    function eventsFor(date) {
+        if (!CalendarService.calendarAvailable)
             return [];
-        return CalendarService.getEventsForDate(date).map(event => event.color?.length ? event.color : Theme.primary);
+        const events = CalendarService.getEventsForDate(date);
+        if (Qt.formatDate(date, "yyyy-MM-dd") !== Qt.formatDate(systemClock.date, "yyyy-MM-dd"))
+            return events;
+        return overdueTasks().concat(events);
+    }
+
+    function eventColorsFor(date) {
+        return eventsFor(date).map(event => {
+            const color = event.color?.length ? event.color : Theme.primary;
+            if (!isTask(event))
+                return color;
+            return {
+                "color": color,
+                "kind": event.completed ? "taskDone" : "task"
+            };
+        });
     }
 
     function updateSelectedDateEvents() {
-        const events = CalendarService.calendarAvailable ? CalendarService.getEventsForDate(selectedDate) : [];
+        const events = eventsFor(selectedDate);
         if (JSON.stringify(events) === JSON.stringify(selectedDateEvents))
             return;
         selectedDateEvents = events;
@@ -366,6 +397,7 @@ Card {
             weekColumnWidth: DashMetrics.weekColumnWidth
             weekNumberFor: date => root.getWeekNumber(date)
             dotColorsFor: date => root.eventColorsFor(date)
+            countMarkers: true
             revision: root.eventsRevision
             interactive: root.interactive
             onDayClicked: date => {
